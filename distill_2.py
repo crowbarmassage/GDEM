@@ -107,6 +107,13 @@ eigenvecs_lcc = torch.FloatTensor(eigenvecs_lcc)
 n_syn = int(len(data.idx_train) * args.reduction_rate)
 args.eigen_k = args.eigen_k if args.eigen_k < n_syn else n_syn
 
+# Add these print statements to distill.py
+print(f"Training set size: {len(data.idx_train)}")
+print(f"Reduction rate: {args.reduction_rate}")
+print(f"Number of synthetic nodes (n_syn): {n_syn}")
+
+# Also check eigenvalues size:
+print(f"eigen_k: {args.eigen_k}"
 
 CHUNK_SIZE=1000  # New line
 eigenvals, eigenvecs = get_syn_eigen(real_eigenvals=eigenvals_lcc, real_eigenvecs=eigenvecs_lcc, eigen_k=args.eigen_k, ratio=args.ratio)
