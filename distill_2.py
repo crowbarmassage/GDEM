@@ -12,6 +12,7 @@ import importlib
 importlib.reload(agent)
 from agent import GraphAgent
 
+# Added helper function
 def get_available_gpu():
     """Get the first available GPU or return 'cpu'"""
     if torch.cuda.is_available():
@@ -31,7 +32,7 @@ def manage_gpu_memory():
         return True
     return False
 
-# Process covariance matrix in chunks
+# Process covariance matrix in chunks - do I use this?
 def process_covariance_chunks(eigenvecs, x, chunk_size):
     n_chunks = (x.shape[0] + chunk_size - 1) // chunk_size
     co_matrix = 0
