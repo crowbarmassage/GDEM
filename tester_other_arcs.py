@@ -204,7 +204,7 @@ class Evaluator:
             print(
                 "Test full set results:",
                 "loss= {:.4f}".format(loss_test.item()),
-                "accuracy= {:.4f}".format(acc_test.item()),
+                # "accuracy= {:.4f}".format(acc_test.item()), Commented this line out
             )
         return acc_test
 
