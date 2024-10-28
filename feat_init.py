@@ -12,7 +12,15 @@ from sklearn.metrics import accuracy_score
 
 from dataset import get_dataset, Transd2Ind, DataGraphSAINT
 from utils import seed_everything
-    
+
+# NEW ADDITION - Add this function:
+def get_available_gpu():
+    """Get the first available GPU or return 0 if none found"""
+    if torch.cuda.is_available():
+        return 0
+    return 'cpu'
+
+
 class MLP(nn.Module):
     def __init__(
         self,
@@ -287,7 +295,20 @@ if args.dataset in config:
 for key, value in config.items():
     setattr(args, key, value)
 
-torch.cuda.set_device(args.gpu_id)
+# torch.cuda.set_device(args.gpu_id)
+if torch.cuda.is_available():
+    device = torch.device(f'cuda:{get_available_gpu()}')
+    print(f"Using GPU device {get_available_gpu()}")
+else:
+    device = torch.device('cpu')
+    print("Using CPU")
+    
+if torch.cuda.is_available():
+    print(f"CUDA device count: {torch.cuda.device_count()}")
+    print(f"Current CUDA device: {torch.cuda.current_device()}")
+    print(f"Device name: {torch.cuda.get_device_name(0)}")
+
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')    
 seed_everything(args.seed)
 
 data_graphsaint = ['flickr', 'reddit', 'ogbn-arxiv']
@@ -311,4 +332,6 @@ print(accs)
 mean_acc = np.mean(accs)
 std_acc = np.std(accs)
 print(f"Mean ACC: {mean_acc}\t Std: {std_acc}")
+
+
 
