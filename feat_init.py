@@ -296,6 +296,7 @@ for key, value in config.items():
     setattr(args, key, value)
 
 # torch.cuda.set_device(args.gpu_id)
+# Added everything through seed_everything(...)
 if torch.cuda.is_available():
     device = torch.device(f'cuda:{get_available_gpu()}')
     print(f"Using GPU device {get_available_gpu()}")
