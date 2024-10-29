@@ -26,7 +26,8 @@ if not os.path.isdir(dir):
 
 idx_lcc, adj_norm_lcc, _ = get_largest_cc(data.adj_full, data.num_nodes, args.dataset)
 np.save(f"{dir}/idx_lcc.npy", idx_lcc)
-
+# Citeseer number of nodes = 3327
+# Citeseer number of nodes in lcc = 2120 (not comparing apples to apples when comparing to Vanilla GCN)
 L_lcc = sp.eye(len(idx_lcc)) - adj_norm_lcc    
 eigenvals_lcc, eigenvecs_lcc = get_eigh(L_lcc, f"{args.dataset}", True)
 
