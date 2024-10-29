@@ -36,6 +36,7 @@ class Transd2Ind:
             ),
             shape=(n, n),
         )
+        print("Adjacency Matrix:  ", adj.shape)
         features = data.x
         labels = data.y
         if len(labels.shape) == 2 and labels.shape[1] == 1:
@@ -64,11 +65,13 @@ class Transd2Ind:
         self.adj_train = adj[np.ix_(idx_train, idx_train)]
         self.adj_val = adj[np.ix_(idx_val, idx_val)]
         self.adj_test = adj[np.ix_(idx_test, idx_test)]
-        
+        print("Adj shape:  ", self.adj_train.shape)
+        print("Adjacency Row 1:  ",self.adj_train )
         self.x_train = features[idx_train]
         self.x_val = features[idx_val]
         self.x_test = features[idx_test]
-
+        print("X train shape:  ",self.x_train.shape)
+        print(self.x_train)
         self.y_train = labels[idx_train]
         self.y_val = labels[idx_val]
         self.y_test = labels[idx_test]
@@ -319,9 +322,13 @@ def load_eigen(dataset):
         eigenvectors = np.hstack([eigenvectors, eigenvectors_la])
     
     idx = np.argsort(eigenvalues)
+    print(len(eigenvalues))
+    print(len(eigenvectors))
+    print(idx) 
     eigenvalues = eigenvalues[idx[:]]
     eigenvectors = eigenvectors[:, idx[:]]
-                     
+    print(len(eigenvalues))
+    print(len(eigenvectors))                
     return eigenvalues, eigenvectors
 
 
