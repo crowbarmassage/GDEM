@@ -19,16 +19,18 @@ if args.dataset in data_graphsaint:
 else:
     data_full = get_dataset(args.dataset, args.normalize_features)
     data = Transd2Ind(data_full)
-
+print(len(data_full))
+print(data_full)
+#print(len(data))
 dir = f"./data/{args.dataset}"
 if not os.path.isdir(dir):
     os.makedirs(dir)
-
+print(data.num_nodes)
 idx_lcc, adj_norm_lcc, _ = get_largest_cc(data.adj_full, data.num_nodes, args.dataset)
 np.save(f"{dir}/idx_lcc.npy", idx_lcc)
-# Citeseer number of nodes = 3327
-# Citeseer number of nodes in lcc = 2120 (not comparing apples to apples when comparing to Vanilla GCN)
-L_lcc = sp.eye(len(idx_lcc)) - adj_norm_lcc    
+
+L_lcc = sp.eye(len(idx_lcc)) - adj_norm_lcc
+print(L_lcc.shape)    
 eigenvals_lcc, eigenvecs_lcc = get_eigh(L_lcc, f"{args.dataset}", True)
 
 idx_train_lcc, idx_map = get_train_lcc(idx_lcc=idx_lcc, idx_train=data.idx_train, y_full=data.y_full, num_nodes=data.num_nodes, num_classes=data.num_classes)
