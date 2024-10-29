@@ -87,7 +87,7 @@ class Evaluator:
         y_syn = self.y_syn
 
         adj_syn = torch.eye(self.n_syn).cuda() - L_syn
-
+        args.k=30 # Need to make modular.  This is for 25% for the Citeseer dataset
         print("======= testing %s" % test_model)
         if test_model == "SGC":
             model = SGC(
