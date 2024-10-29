@@ -113,7 +113,7 @@ print(f"Reduction rate: {args.reduction_rate}")
 print(f"Number of synthetic nodes (n_syn): {n_syn}")
 
 # Also check eigenvalues size:
-print(f"eigen_k: {args.eigen_k}"
+print(f"eigen_k: {args.eigen_k}")
 
 CHUNK_SIZE=1000  # New line
 eigenvals, eigenvecs = get_syn_eigen(real_eigenvals=eigenvals_lcc, real_eigenvecs=eigenvecs_lcc, eigen_k=args.eigen_k, ratio=args.ratio)
