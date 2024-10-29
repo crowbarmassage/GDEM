@@ -1,4 +1,21 @@
 {
+    "citeseer-0.1":{
+        "dataset": "citeseer",
+        "reduction_rate": 0.1,
+        "eigen_k": 30,
+        "ratio": 1.0,
+        "epoch": 1000,
+        "e1": 5,
+        "e2": 1,
+        "alpha": 1.0,
+        "beta": 1e-05,
+        "gamma": 1.0,
+        "lr_feat": 0.0001,
+        "lr_eigenvec": 0.01,
+        "lr_gnn": 0.01,
+        "wd_gnn": 0.0005,
+        "dropout": 0.5
+    },
     "citeseer-0.25":{
         "dataset": "citeseer",
         "reduction_rate": 0.25,
