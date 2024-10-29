@@ -343,7 +343,7 @@ def get_eigh(laplacian_matrix, data_name, save=True):
 
     eigvals_path = os.path.join(dir, val_file_name)
     eigvecs_path = os.path.join(dir, vec_file_name)
-
+    print("Eigen path directory assigned.")
     if os.path.exists(eigvals_path) and os.path.exists(eigvecs_path):            
         eigenvalues = np.load(eigvals_path)
         eigenvectors = np.load(eigvecs_path)
@@ -353,8 +353,10 @@ def get_eigh(laplacian_matrix, data_name, save=True):
         else:
             if sp.issparse(laplacian_matrix):
                 laplacian_matrix = laplacian_matrix.todense()
+            print("Checked if laplacian matrix is sparse.")
             eigenvalues, eigenvectors = eigh(laplacian_matrix)
-
+            print("Eigens calculated.")
+            print("Laplacian matrix shape:  ", laplacian_matrix.shape)
         if save:
             np.save(eigvals_path, eigenvalues)
             np.save(eigvecs_path, eigenvectors)
@@ -382,4 +384,6 @@ def get_eigh(laplacian_matrix, data_name, save=True):
     eigenvectors = eigenvectors[:, idx[:]]
                      
     return eigenvalues, eigenvectors
+
+
 
