@@ -30,7 +30,7 @@ idx_lcc, adj_norm_lcc, _ = get_largest_cc(data.adj_full, data.num_nodes, args.da
 np.save(f"{dir}/idx_lcc.npy", idx_lcc)
 
 L_lcc = sp.eye(len(idx_lcc)) - adj_norm_lcc
-print(L_lcc.shape)    
+print("Laplacian of largest connected component shape:  ", L_lcc.shape)    
 eigenvals_lcc, eigenvecs_lcc = get_eigh(L_lcc, f"{args.dataset}", True)
 
 idx_train_lcc, idx_map = get_train_lcc(idx_lcc=idx_lcc, idx_train=data.idx_train, y_full=data.y_full, num_nodes=data.num_nodes, num_classes=data.num_classes)
