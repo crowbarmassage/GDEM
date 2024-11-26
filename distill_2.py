@@ -53,7 +53,7 @@ parser.add_argument("--config", type=str, default='./config/config_distill.json'
 parser.add_argument("--runs", type=int, default=10)
 parser.add_argument("--dataset", type=str, default="citeseer") # [citeseer, pubmed, ogbn-arxiv, flickr, reddit, squirrel, twitch-gamer]
 parser.add_argument("--normalize_features", type=bool, default=True)
-parser.add_argument("--reduction_rate", type=float, default=0.5)
+parser.add_argument("--reduction_rate", type=float, default=0.1)
 
 parser.add_argument("--evaluate_gnn", type=str, default="GCN")
 parser.add_argument("--epoch_gnn", type=int, default=2000)
