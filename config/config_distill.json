@@ -2,7 +2,7 @@
     "citeseer-0.1":{
         "dataset": "citeseer",
         "reduction_rate": 0.1,
-        "eigen_k": 6,
+        "eigen_k": 12,
         "ratio": 1.0,
         "epoch": 1000,
         "e1": 5,
