@@ -57,7 +57,7 @@ def normalize_adj(mx):
     r_mat_inv = sp.diags(r_inv)
     mx = r_mat_inv.dot(mx)
     mx = mx.dot(r_mat_inv)
-    
+    print("Adjacency Matrix Normalized")
     return mx
 
 
