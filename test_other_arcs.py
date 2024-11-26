@@ -14,7 +14,7 @@ parser.add_argument("--runs", type=int, default=10)
 parser.add_argument("--expID", type=int, default=0)
 
 parser.add_argument('--dataset', type=str, default='citeseer')
-parser.add_argument('--reduction_rate', type=float, default=0.5)
+parser.add_argument('--reduction_rate', type=float, default=0.1)
 parser.add_argument('--normalize_features', type=bool, default=True)
 parser.add_argument('--epochs', type=int, default=2000)
 
