@@ -104,7 +104,7 @@ def get_embed_sum(eigenvals, eigenvecs, x):
     x_trans = eigenvecs.T @ x  # kd
     x_trans = torch.diag(1 - eigenvals) @ x_trans # kd
     embed_sum = eigenvecs @ x_trans # nk @ kd = nd
-    print("get_embed_sum:  Eigenvector Matrix Shape:  ", embed_sum.shape)
+    print("get_embed_sum:  Embedding Matrix Shape:  ", embed_sum.shape)
     return embed_sum
 
 def get_embed_mean(embed_sum, label):
@@ -114,7 +114,7 @@ def get_embed_mean(embed_sum, label):
     mean_weight = (1 / class_matrix.sum(1)).unsqueeze(-1)  # c1
     embed_mean = mean_weight * embed_sum
     embed_mean = F.normalize(input=embed_mean, p=2, dim=1)
-    print("get_embed_mean:  embed_mean:  ", embed_mean)
+    print("get_embed_mean:  embed_mean shape:  ", embed_mean.shape)
     return embed_mean
 
 def get_train_lcc(idx_lcc, idx_train, y_full, num_nodes, num_classes):
