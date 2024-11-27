@@ -28,8 +28,10 @@ def init_params(module):
         module.weight.data.uniform_(-stdv, stdv)
         if module.bias is not None:
             module.bias.data.uniform_(-stdv, stdv)
+        print("Initialized Weight Parameters with Uniform Distribution")
     if isinstance(module, nn.Embedding):
         module.weight.data.normal_(mean=0.0, std=0.02)
+        print("Initialized Weight Parameters with Normal Distribution") 
 
 def normalize_features(mx):
      rowsum = mx.sum(1)
@@ -67,6 +69,7 @@ def get_syn_eigen(real_eigenvals, real_eigenvecs, eigen_k, ratio, step=1):
     print("k1:", k1, ",", "k2:", k2)
     k1_end = (k1 - 1) * step + 1
     eigen_sum = real_eigenvals.shape[0]
+    print("eigen_sum:  ", eigen_sum)
     k2_end = eigen_sum - (k2 - 1) * step - 1
     k1_list = range(0, k1_end, step)
     k2_list = range(k2_end, eigen_sum, step)
@@ -129,3 +132,48 @@ def get_train_lcc(idx_lcc, idx_train, y_full, num_nodes, num_classes):
                 idx_train_lcc += list(np.random.permutation(idx_c)[:num_c])
         idx_map = [idx_lcc.index(i) for i in idx_train_lcc]               
     return idx_train_lcc, idx_map
+
+"""
+Utility Functions Explanation:
+
+1. seed_everything(seed):
+   Ensures reproducibility by setting seeds for Python, NumPy, and PyTorch random number generators. It includes support for CUDA-based random seeds.
+
+2. init_params(module):
+   Initializes parameters for specific neural network layers:
+   - For nn.Linear: Initializes weights using a uniform distribution and biases (if present) in the same way.
+   - For nn.Embedding: Initializes weights using a normal distribution.
+
+3. normalize_features(mx):
+   Normalizes a feature matrix row-wise such that the sum of each row equals 1. This is important for ensuring comparable scales across features.
+
+4. normalize_adj(mx):
+   Normalizes an adjacency matrix with added self-loops using the formula A' = D^-1/2 * (A + I) * D^-1/2, where D is the degree matrix. This normalization is commonly used in graph-based learning to smooth over neighbors.
+
+5. normalize_adj_to_sparse_tensor(mx):
+   Combines adjacency matrix normalization (using normalize_adj) and converts it into a PyTorch SparseTensor for efficient GPU computations.
+
+6. get_syn_eigen(real_eigenvals, real_eigenvecs, eigen_k, ratio, step=1):
+   Constructs synthetic eigenvalues and eigenvectors for embedding generation by selecting a subset of eigenvalues from the spectrum based on a specified ratio. This is useful for feature dimensionality reduction or customized embeddings.
+
+7. get_subspace_embed(eigenvecs, x):
+   Projects input data `x` onto the subspace defined by the provided eigenvectors. This produces subspace embeddings that reflect the spectral properties of the graph.
+
+8. get_subspace_covariance_matrix(eigenvecs, x):
+   Computes the covariance matrix for data projected into the subspace defined by eigenvectors. This is normalized and transformed to understand feature relationships in the spectral domain.
+
+9. get_embed_sum(eigenvals, eigenvecs, x):
+   Computes an embedding by applying a transformation weighted by eigenvalues and eigenvectors. This results in embeddings that de-emphasize specific spectral components.
+
+10. get_embed_mean(embed_sum, label):
+    Computes class-wise mean embeddings by summing embeddings for nodes with the same label and normalizing the results. This is useful for analyzing class-based patterns in embedding spaces.
+
+11. get_train_lcc(idx_lcc, idx_train, y_full, num_nodes, num_classes):
+    Generates a subset of training indices within the largest connected component (LCC) of a graph:
+    - Ensures that training indices are valid within the LCC.
+    - Balances class representation by adding additional indices from the LCC as needed.
+    - Returns the updated training indices and their mapping to the LCC.
+
+These utilities collectively handle tasks such as preprocessing graphs, initializing models, normalizing data, and preparing embeddings. They are essential for graph-based learning workflows, ensuring efficiency, scalability, and compatibility with PyTorch.
+"""
+
