@@ -13,8 +13,6 @@ import torch.nn.functional as F
 from deeprobust.graph.utils import sparse_mx_to_torch_sparse_tensor
 from torch_sparse import SparseTensor
 
-
-
 def seed_everything(seed):
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
@@ -23,7 +21,6 @@ def seed_everything(seed):
     random.seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-
 
 def init_params(module):
     if isinstance(module, nn.Linear):
@@ -34,7 +31,6 @@ def init_params(module):
     if isinstance(module, nn.Embedding):
         module.weight.data.normal_(mean=0.0, std=0.02)
 
-
 def normalize_features(mx):
      rowsum = mx.sum(1)
      r_inv = torch.pow(rowsum, -1)
@@ -42,7 +38,6 @@ def normalize_features(mx):
      r_mat_inv = torch.diag(r_inv)
      mx = r_mat_inv @ mx
      return mx
-
 
 def normalize_adj(mx):
     """Normalize sparse adjacency matrix,
@@ -60,13 +55,11 @@ def normalize_adj(mx):
     print("Adjacency Matrix Normalized")
     return mx
 
-
 def normalize_adj_to_sparse_tensor(mx):
     mx = normalize_adj(mx)
     mx = sparse_mx_to_torch_sparse_tensor(mx)
     sparsetensor = SparseTensor(row=mx._indices()[0], col=mx._indices()[1], value=mx._values(), sparse_sizes=mx.size()).cuda()
     return sparsetensor
-
 
 def get_syn_eigen(real_eigenvals, real_eigenvecs, eigen_k, ratio, step=1):
     k1 = math.ceil(eigen_k * ratio)
@@ -83,9 +76,7 @@ def get_syn_eigen(real_eigenvals, real_eigenvecs, eigen_k, ratio, step=1):
     eigenvecs = torch.cat(
         [real_eigenvecs[:, k1_list], real_eigenvecs[:, k2_list]], dim=1,
     )
-    
     return eigenvals, eigenvecs
-
 
 def get_subspace_embed(eigenvecs, x):
     x_trans = eigenvecs.T @ x  # kd
@@ -94,21 +85,18 @@ def get_subspace_embed(eigenvecs, x):
     sub_embed = torch.bmm(u_unsqueeze, x_trans_unsqueeze)  # kn1 @ k1d = knd
     return x_trans, sub_embed
 
-
 def get_subspace_covariance_matrix(eigenvecs, x):
     x_trans = eigenvecs.T @ x  # kd
     x_trans = F.normalize(input=x_trans, p=2, dim=1)
     x_trans_unsqueeze = x_trans.unsqueeze(1)  # k1d
     co_matrix = torch.bmm(x_trans_unsqueeze.permute(0, 2, 1), x_trans_unsqueeze)  # kd1 @ k1d = kdd
     return co_matrix
-
   
 def get_embed_sum(eigenvals, eigenvecs, x):
     x_trans = eigenvecs.T @ x  # kd
     x_trans = torch.diag(1 - eigenvals) @ x_trans # kd
     embed_sum = eigenvecs @ x_trans # nk @ kd = nd
     return embed_sum
-
 
 def get_embed_mean(embed_sum, label):
     class_matrix = F.one_hot(label).float()  # nc
@@ -118,7 +106,6 @@ def get_embed_mean(embed_sum, label):
     embed_mean = mean_weight * embed_sum
     embed_mean = F.normalize(input=embed_mean, p=2, dim=1)
     return embed_mean
-
 
 def get_train_lcc(idx_lcc, idx_train, y_full, num_nodes, num_classes):
     idx_train_lcc = list(set(idx_train).intersection(set(idx_lcc)))
@@ -140,6 +127,5 @@ def get_train_lcc(idx_lcc, idx_train, y_full, num_nodes, num_classes):
                 idx_c = list(idx[y_lcc_ == c])
                 idx_c = np.array(y_lcc_idx)[idx_c]
                 idx_train_lcc += list(np.random.permutation(idx_c)[:num_c])
-        idx_map = [idx_lcc.index(i) for i in idx_train_lcc]
-                        
+        idx_map = [idx_lcc.index(i) for i in idx_train_lcc]               
     return idx_train_lcc, idx_map
