@@ -33,16 +33,16 @@ def manage_gpu_memory():
     return False
 
 # Process covariance matrix in chunks - do I use this?
-def process_covariance_chunks(eigenvecs, x, chunk_size):
-    n_chunks = (x.shape[0] + chunk_size - 1) // chunk_size
-    co_matrix = 0
-    for i in range(n_chunks):
-        start_idx = i * chunk_size
-        end_idx = min((i + 1) * chunk_size, x.shape[0])
-        chunk = x[start_idx:end_idx]
-        co_matrix += get_subspace_covariance_matrix(eigenvecs, chunk)
-        torch.cuda.empty_cache()  # Clear cache after each chunk
-    return co_matrix
+# def process_covariance_chunks(eigenvecs, x, chunk_size):
+#     n_chunks = (x.shape[0] + chunk_size - 1) // chunk_size
+#     co_matrix = 0
+#     for i in range(n_chunks):
+#         start_idx = i * chunk_size
+#         end_idx = min((i + 1) * chunk_size, x.shape[0])
+#         chunk = x[start_idx:end_idx]
+#         co_matrix += get_subspace_covariance_matrix(eigenvecs, chunk)
+#         torch.cuda.empty_cache()  # Clear cache after each chunk
+#     return co_matrix
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--gpu_id", type=int, default=0, help="gpu id")
