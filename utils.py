@@ -79,6 +79,7 @@ def get_syn_eigen(real_eigenvals, real_eigenvecs, eigen_k, ratio, step=1):
     eigenvecs = torch.cat(
         [real_eigenvecs[:, k1_list], real_eigenvecs[:, k2_list]], dim=1,
     )
+    print("Eigenvector Matrix Shape:  ", eigenvecs.shape)
     return eigenvals, eigenvecs
 
 def get_subspace_embed(eigenvecs, x):
