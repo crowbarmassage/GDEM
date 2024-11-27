@@ -20,7 +20,6 @@ def get_available_gpu():
         return 0
     return 'cpu'
 
-
 class MLP(nn.Module):
     def __init__(
         self,
@@ -28,7 +27,6 @@ class MLP(nn.Module):
         num_classes,
         hidden_dim,
         dropout):
-        
         super(MLP, self).__init__()
         self.dropout = dropout
         self.layers = nn.ModuleList([nn.Linear(num_features, hidden_dim), nn.Linear(hidden_dim, num_classes)])
@@ -50,65 +48,49 @@ class MLP(nn.Module):
 
         return F.log_softmax(x, dim=1)
 
-
 class GraphAgent:
     def __init__(self, args, data):
         self.args = args
         self.data = data
-        
         self.n_syn = int(len(data.idx_train) * args.reduction_rate)
         print(self.n_syn)
         self.d = (data.x_train).shape[1]
         self.num_classes = data.num_classes
-
         self.x_syn = nn.Parameter(torch.FloatTensor(self.n_syn, self.d).cuda())
         self.y_syn = torch.LongTensor(self.generate_labels_syn(data.y_full[data.idx_train], args.reduction_rate)).cuda()
-        
         self.reset_parameters()
-
 
     def reset_parameters(self):
         nn.init.xavier_uniform_(self.x_syn.data)
     
-    
     def train(self):
         args = self.args
         data = self.data
-        
         optimizer_feat = torch.optim.Adam(
             [self.x_syn], lr=args.lr_feat, weight_decay=args.wd_feat
         )
-
         model = self.mlp_trainer(args, data, verbose=False)
         model.train()
-        
         for i in range(args.epoch):
             output = model(self.x_syn)
             loss = F.nll_loss(output, self.y_syn)
-            
             optimizer_feat.zero_grad()
             loss.backward()
             optimizer_feat.step()
-
         x_syn, y_syn = self.x_syn.detach(), self.y_syn
-        
         dir = f"./initial_feat/{args.dataset}"
         if not os.path.isdir(dir):
             os.makedirs(dir)
-
         torch.save(
             x_syn, f"{dir}/x_init_{args.reduction_rate}_{args.expID}.pt"
         )
         torch.save(
             y_syn, f"{dir}/y_init_{args.reduction_rate}_{args.expID}.pt"
         )
-        
-        
         acc = self.test_with_val(
             x_syn,
             y_syn
         )
-
         return acc
 
     def test_with_val(self, x_syn, y_syn):
@@ -178,8 +160,6 @@ class GraphAgent:
         )
         
         return acc_test
-
-    
     
     def mlp_trainer(self, args, data, verbose):
         x_full = data.x_full
@@ -204,29 +184,23 @@ class GraphAgent:
                 optimizer = torch.optim.Adam(
                     model.parameters(), lr=args.lr, weight_decay=args.weight_decay
                 )
-            
             model.train()
             optimizer.zero_grad()
 
             output = model.forward(data.x_train)
             loss_train = F.nll_loss(output, y_full[idx_train])
-
             loss_train.backward()
             optimizer.step()
-
             with torch.no_grad():
                 model.eval()
                 output = model.forward(data.x_val)
                 loss_val = F.nll_loss(output, y_full[idx_val])
-
                 pred = output.max(1)[1]
                 pred = pred.cpu().numpy()
                 acc_val = accuracy_score(y_val, pred)
-
                 if acc_val > best_acc_val:
                     best_acc_val = acc_val
                     weights = deepcopy(model.state_dict())
-            
         model.load_state_dict(weights)        
 
         if verbose:
@@ -242,13 +216,11 @@ class GraphAgent:
             print(
                 f"Test set results: test_loss= {loss_test.item():.4f}, train_acc= {acc_train:.4f}, val_acc= {acc_val:.4f}, test_acc= {acc_test:.4f}"
             )
-        
         return model
-    
     
     def generate_labels_syn(self, train_label, reduction_rate):
         from collections import Counter
-
+        
         n = len(train_label)
         counter = Counter(train_label.cpu().numpy())
         num_class_dict = {}
@@ -271,8 +243,6 @@ class GraphAgent:
 
         self.num_class_dict = num_class_dict
         return y_syn
-    
-
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--gpu_id", type=int, default=1, help="gpu id")
@@ -319,11 +289,9 @@ seed_everything(args.seed)
 data_graphsaint = ['flickr', 'reddit', 'ogbn-arxiv']
 if args.dataset in data_graphsaint:
     data = DataGraphSAINT(args.dataset)
-
 else:
     data_full = get_dataset(args.dataset, args.normalize_features)
     data = Transd2Ind(data_full)
-
 data = data.cuda()
 
 accs = []
