@@ -43,13 +43,16 @@ idx_train_lcc, idx_map = get_train_lcc(idx_lcc=idx_lcc, idx_train=data.idx_train
 np.save(f"{dir}/idx_train_lcc.npy", idx_train_lcc)
 np.save(f"{dir}/idx_map.npy", idx_map)
 
-# - **`idx_lcc.npy`**: This file stores the indices of the largest connected component (LCC) in the graph. The LCC refers to the largest subgraph in which every pair of nodes is connected either directly or via other nodes.
-# This is essential when focusing on the primary structure of a graph for tasks like node classification or graph analysis while ignoring disconnected or minor subgraphs.
+# - **`idx_lcc.npy`**: This file stores the indices of the largest connected component (LCC) in the graph. The LCC refers to the largest subgraph
+# in which every pair of nodes is connected either directly or via other nodes. This is essential when focusing on the primary structure of a graph
+# for tasks like node classification or graph analysis while ignoring disconnected or minor subgraphs.
 
-# - **`idx_map.npy`**: This file contains a mapping between the node indices in the original graph and the corresponding node indices in the largest connected component (LCC).
-# This mapping helps translate between the indices of the full graph and the reduced LCC graph, enabling consistent node labeling when working within the LCC.
+# - **`idx_map.npy`**: This file contains a mapping between the node indices in the original graph and the corresponding node indices in the largest
+# connected component (LCC). This mapping helps translate between the indices of the full graph and the reduced LCC graph, enabling consistent node
+# labeling when working within the LCC.
 
 # - **`idx_train_lcc.npy`**: This file includes the indices of training nodes within the largest connected component.
 #     These indices represent the subset of nodes in the LCC that are used for supervised tasks, such as training a model in a node classification problem.
 
-# These files are critical in preprocessing steps where the focus is narrowed to the largest, most relevant subgraph to improve computational efficiency and analysis accuracy.
+# These files are critical in preprocessing steps where the focus is narrowed to the largest, most relevant subgraph to improve computational
+# efficiency and analysis accuracy.
