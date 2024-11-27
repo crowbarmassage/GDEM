@@ -97,9 +97,12 @@ class GraphAgent:
             os.makedirs(dir)
 
         torch.save(
-            x_syn, f"{dir}/x_init_{args.reduction_rate}_{args.expID}.pt",
+            x_syn, f"{dir}/x_init_{args.reduction_rate}_{args.expID}.pt"
+        )
+        torch.save(
             y_syn, f"{dir}/y_init_{args.reduction_rate}_{args.expID}.pt"
         )
+        
         
         acc = self.test_with_val(
             x_syn,
