@@ -30,7 +30,15 @@ idx_lcc, adj_norm_lcc, _ = get_largest_cc(data.adj_full, data.num_nodes, args.da
 np.save(f"{dir}/idx_lcc.npy", idx_lcc)
 np.save(f"{dir}/adj_norm_lcc.npy", adj_norm_lcc)
 # np.save("adj_norm_lcc.npy", array.astype(np.float64)) # Switch this line to fix pickle problem
+# Subset the feature matrix for nodes in the LCC
+if hasattr(data, 'x_full'):
+    features_lcc = data.x_full[idx_lcc]
+    print("Feature matrix for LCC shape:", features_lcc.shape)
 
+    # Save the subsetted feature matrix
+    np.save(f"{dir}/features_lcc.npy", features_lcc.cpu().numpy())  # Save as NumPy array
+else:
+    print("Feature matrix not found in the dataset.")
 L_lcc = sp.eye(len(idx_lcc)) - adj_norm_lcc
 print("Laplacian of largest connected component shape:  ", L_lcc.shape)    
 eigenvals_lcc, eigenvecs_lcc = get_eigh(L_lcc, f"{args.dataset}", True)
