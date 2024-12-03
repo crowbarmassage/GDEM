@@ -120,9 +120,13 @@ eigenvals, eigenvecs = get_syn_eigen(real_eigenvals=eigenvals_lcc, real_eigenvec
 print("Eigenvecs Shape:  ", eigenvecs.shape)
 print("Full x Shape:  ", data.x_full[idx_lcc].shape)
 co_x_trans_real = get_subspace_covariance_matrix(eigenvecs, data.x_full[idx_lcc]) #kdd
+print("Co_x_trans_real shape:  ", co_x_trans_real.shape)
 embed_sum = get_embed_sum(eigenvals=eigenvals, eigenvecs=eigenvecs, x=data.x_full[idx_lcc])
+print("embed_sum shape:  ", embed_sum.shape)
 embed_sum = embed_sum[idx_map,:]
+print("embed_sum shape:  ", embed_sum.shape)
 embed_mean_real = get_embed_mean(embed_sum=embed_sum, label=data.y_full[idx_train_lcc])
+print("embed_mean_real shape:  ", embed_mean_real.shape)
 
 # data = data.to(device)
 # eigenvals = eigenvals.to(device)
