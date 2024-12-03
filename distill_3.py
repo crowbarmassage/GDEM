@@ -55,7 +55,9 @@ def run_agent(aug_eigenvalues, aug_eigenvecs):
     parser.add_argument("--runs", type=int, default=1)
     parser.add_argument("--dataset", type=str, default="citeseer") # [citeseer, pubmed, ogbn-arxiv, flickr, reddit, squirrel, twitch-gamer]
     parser.add_argument("--normalize_features", type=bool, default=True)
-    parser.add_argument("--reduction_rate", type=float, default=0.25)
+    
+    ####### Change this line
+    parser.add_argument("--reduction_rate", type=float, default=0.1)
     
     parser.add_argument("--evaluate_gnn", type=str, default="GCN")
     parser.add_argument("--epoch_gnn", type=int, default=2000)
@@ -99,7 +101,7 @@ def run_agent(aug_eigenvalues, aug_eigenvecs):
 
     ####### Change this line
     # dataset_dir = f"./data/{args.dataset}"
-    dataset_dir = '/content/drive/MyDrive/All_DataAnalytics_AI/CS_514/Project/saved_citeseer/citeseer-0.1/'
+    dataset_dir = f"/content/drive/MyDrive/All_DataAnalytics_AI/CS_514/Project/saved_{args.dataset}/{args.dataset}-{args.reduction_rate}/"
     
     idx_lcc = np.load(f"{dataset_dir}/idx_lcc.npy")
     idx_train_lcc = np.load(f"{dataset_dir}/idx_train_lcc.npy")
