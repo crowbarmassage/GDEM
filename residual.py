@@ -707,3 +707,91 @@ def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_trai
     
     return assigned_labels
 
+def evaluate_augmented_graph(data, args, aug_features, aug_A, aug_labels, device='cuda'):
+    """
+    Evaluate augmented distilled graph on test set with flexible device selection
+    
+    Args:
+        data: Dataset object containing test data
+        args: Arguments containing model parameters
+        aug_features (torch.Tensor): Features of augmented graph
+        aug_A (torch.Tensor): Adjacency matrix of augmented graph
+        aug_labels (torch.Tensor): Labels of augmented graph nodes
+        device (str): Device to run evaluation on ('cuda' or 'cpu')
+    """
+    # Check if CUDA is available when device='cuda' is requested
+    if device == 'cuda' and not torch.cuda.is_available():
+        print("CUDA is not available, using CPU instead")
+        device = 'cpu'
+    
+    # Move everything to specified device
+    aug_features = aug_features.to(device)
+    aug_A = aug_A.to(device)
+    aug_labels = aug_labels.to(device)
+    
+    # Initialize model based on args.evaluate_gnn
+    if args.evaluate_gnn == "GCN":
+        model = GCN(
+            num_features=aug_features.shape[1],
+            num_classes=data.num_classes,
+            hidden_dim=args.hidden_dim,
+            nlayers=args.nlayers,
+            dropout=args.dropout,
+            lr=args.lr_gnn,
+            weight_decay=args.wd_gnn
+        ).to(device)
+    else:
+        raise ValueError(f"Unsupported model: {args.evaluate_gnn}")
+    
+    # Train model on augmented graph
+    model.train()
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr_gnn, weight_decay=args.wd_gnn)
+    
+    # Training loop
+    best_val_acc = 0
+    best_test_acc = 0
+    
+    print(f"\nTraining on {device}")
+    
+    for epoch in range(args.epoch_gnn):
+        # Train on augmented graph
+        model.train()
+        optimizer.zero_grad()
+        out = model(aug_features, aug_A)
+        loss = F.nll_loss(out, aug_labels)
+        loss.backward()
+        optimizer.step()
+        
+        # Evaluate on validation and test sets
+        model.eval()
+        with torch.no_grad():
+            # Move full data to device
+            x_full = data.x_full.to(device)
+            adj_full = normalize_adj_to_sparse_tensor(data.adj_full).to(device)
+            y_full = data.y_full.to(device)
+            
+            # Get predictions on full graph
+            out = model(x_full, adj_full)
+            
+            # Move predictions to CPU for accuracy calculation
+            val_preds = out[data.idx_val].max(1)[1].cpu()
+            test_preds = out[data.idx_test].max(1)[1].cpu()
+            
+            # Compute accuracies
+            val_acc = accuracy_score(y_full[data.idx_val].cpu(), val_preds)
+            test_acc = accuracy_score(y_full[data.idx_test].cpu(), test_preds)
+            
+            # Track best accuracies
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                best_test_acc = test_acc
+        
+        if epoch % 100 == 0:
+            print(f'Epoch {epoch:4d}, Loss: {loss.item():.4f}, '
+                  f'Val Acc: {val_acc:.4f}, Test Acc: {test_acc:.4f}')
+    
+    print(f'\nBest results:')
+    print(f'Val Acc: {best_val_acc:.4f}')
+    print(f'Test Acc: {best_test_acc:.4f}')
+    
+    return best_val_acc, best_test_acc
