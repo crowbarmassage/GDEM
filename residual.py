@@ -77,7 +77,7 @@ def load_parameter_dependent_files(file_path, device, x, y):
     
     return eigenvals, eigenvecs, feat, x_init, A_distilled
 
-def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k):
+def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k, device='cuda', dtype=torch.float32):
     """
     Compute the reconstruction and residual using the first k eigenvectors
     
@@ -85,38 +85,36 @@ def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k):
         L_eigenvectors (numpy.ndarray): Matrix of eigenvectors
         A_distilled (torch.Tensor): Distilled adjacency matrix
         A (numpy.ndarray): Original adjacency matrix
-        k (int): Number of eigenvectors to use (nodes in distilled graph)
+        k (int): Number of eigenvectors to use
+        device (str): Device to use for computations ('cuda' or 'cpu')
+        dtype (torch.dtype): Dtype to use for tensors (default: torch.float32)
         
     Returns:
-        tuple: Tuple containing (V, A_reconstructed, R)
-            - V: First k eigenvectors as torch tensor
-            - A_reconstructed: Reconstructed adjacency matrix
-            - R: Residual matrix
+        tuple: (V, A_torch, A_reconstructed, R)
     """
-    # Get first k eigenvectors
+    # Get first k eigenvectors and move to device with specified dtype
     V = L_eigenvectors[:, :k]  # First k eigenvectors
-    V = torch.tensor(V, dtype=torch.float64)
-    print(f"V shape: {V.shape}")
-    print(f"A_distilled shape: {A_distilled.shape}")
+    V = torch.tensor(V, dtype=dtype).to(device)
+    print(f"V shape: {V.shape}, dtype: {V.dtype}")
     
-    # Ensure correct dtype
-    A_distilled = A_distilled.to(dtype=torch.float64)
+    # Ensure A_distilled is on the same device and dtype
+    A_distilled = A_distilled.to(device).to(dtype)
+    print(f"A_distilled shape: {A_distilled.shape}, dtype: {A_distilled.dtype}")
     
     # Convert sparse matrix to dense if needed
     if sp.issparse(A):
         A = A.toarray()
-        print("Converted A to dense matrix")
     
-    # Ensure A is numeric
-    A = np.array(A, dtype=np.float64)
+    # Ensure A is numeric and convert to tensor with specified dtype
+    A = np.array(A, dtype=np.float32 if dtype == torch.float32 else np.float64)
+    A_torch = torch.tensor(A, dtype=dtype).to(device)
     
     # Compute reconstruction
     A_reconstructed = V @ A_distilled @ V.T
     
-    # Convert A to PyTorch tensor and compute residual
-    A_torch = torch.tensor(A, dtype=torch.float64)
+    # Compute residual
     R = A_torch - A_reconstructed
-    print(f"Residual shape: {R.shape}")
+    print(f"Residual shape: {R.shape}, dtype: {R.dtype}")
     
     return V, A_torch, A_reconstructed, R
 
