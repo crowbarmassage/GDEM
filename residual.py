@@ -283,8 +283,9 @@ def compute_new_to_new_connections(cluster_connections, k):
     connections.fill_diagonal_(0)
     
     # Sparsify while ensuring connectivity
-    connections = ensure_sparse_connectivity(connections)
-    
+    #connections = ensure_sparse_connectivity(connections)
+    connections = ensure_connectivity(connections)
+   
     return connections
 
 def project_synthetic_to_original(x_syn, features):
