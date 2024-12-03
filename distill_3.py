@@ -153,7 +153,7 @@ def run_agent(aug_eigenvals, aug_eigenvecs, aug_features, eigenvals_lcc, eigenve
     for ep in range(args.runs):
         torch.cuda.empty_cache()  # Clear cache before each run
         args.expID = ep
-        agent = GraphAgent(args, data, 1, aug_eigenvecs, aug_features)
+        agent = GraphAgent(args, data, 1, aug_features, aug_eigenvecs)
         try:
             acc = agent.train(eigenvals, co_x_trans_real, embed_mean_real)
             accs.append(acc)
