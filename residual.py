@@ -531,8 +531,8 @@ def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=
     k = len(selected_clusters)
     if k == 0:
         print("\nNo clusters to process")
-        if orig_eigenvals is not None and orig_eigenvecs is not None:
-            return cluster_labels, A_distilled, x_syn, orig_eigenvals, orig_eigenvecs
+        # if orig_eigenvals is not None and orig_eigenvecs is not None:
+        #     return cluster_labels, A_distilled, x_syn, orig_eigenvals, orig_eigenvecs
         return cluster_labels, A_distilled, x_syn
     
     print(f"\nCreating {k} new synthetic nodes from top contributing clusters:")
