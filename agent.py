@@ -172,7 +172,21 @@ class GraphAgent:
 
         return acc
 
-    
+    def eval_only(self, eigenvals_syn, verbose=False)
+
+        x_syn, y_syn = self.x_syn.detach(), self.y_syn
+        eigenvecs_syn = self.eigenvecs_syn.detach()
+
+        acc = self.test_with_val(
+            x_syn,
+            eigenvals_syn,
+            eigenvecs_syn,
+            y_syn,
+            verbose=False
+        )
+
+        return acc
+        
     def test_with_val(
         self,
         x_syn,
