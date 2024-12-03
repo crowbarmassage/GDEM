@@ -375,7 +375,7 @@ def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_n
     # Ensure input tensors are on correct device
     orig_eigenvals = orig_eigenvals.to(device)
     orig_eigenvecs = orig_eigenvecs.to(device)
-    
+    print("Original eigenvectors Shape: ", orig_eigenvecs.shape)
     # Convert to normalized Laplacian space
     L_aug = compute_normalized_laplacian(A_aug)
     
