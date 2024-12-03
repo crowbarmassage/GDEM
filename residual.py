@@ -364,108 +364,6 @@ def ensure_connectivity(adj_matrix):
     
     return connected_adj
 
-# def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_new):
-#     """
-#     Extend spectral properties using perturbation theory
-#     """
-#     # Get device from A_aug
-#     device = A_aug.device
-#     dtype = A_aug.dtype
-    
-#     # Ensure input tensors are on correct device
-#     orig_eigenvals = orig_eigenvals.to(device)
-#     orig_eigenvecs = orig_eigenvecs.to(device)
-#     print("Original eigenvectors Shape: ", orig_eigenvecs.shape)
-#     # Convert to normalized Laplacian space
-#     L_aug = compute_normalized_laplacian(A_aug)
-    
-#     # Extract perturbation blocks
-#     L11 = L_aug[:n_old, :n_old]  # (12 x 12)
-#     L12 = L_aug[:n_old, n_old:]  # (12 x 2)
-#     L21 = L_aug[n_old:, :n_old]  # (2 x 12)
-#     L22 = L_aug[n_old:, n_old:]  # (2 x 2)
-    
-#     # Initialize augmented matrices on correct device
-#     n_total = n_old + n_new  # 14
-#     aug_eigenvals = torch.zeros(n_total, dtype=dtype, device=device)
-#     aug_eigenvecs = torch.zeros((n_total, n_total), dtype=dtype, device=device)
-    
-#     # Copy original values
-#     aug_eigenvals[:n_old] = orig_eigenvals
-#     aug_eigenvecs[:n_old, :n_old] = orig_eigenvecs
-    
-#     # First order eigenvalue corrections for original eigenvalues
-#     for i in range(n_old):
-#         v_i = orig_eigenvecs[:, i]
-#         correction = torch.sum(L12 @ L21 @ v_i * v_i)
-#         aug_eigenvals[i] += correction
-    
-#     # Compute new eigenvalues for added nodes
-#     for i in range(n_new):
-#         # Estimate eigenvector for new node
-#         v_est = torch.zeros(n_old + n_new, dtype=dtype, device=device)
-        
-#         # Project using connections to original nodes
-#         proj = L21[i] @ orig_eigenvecs
-#         v_est[:n_old] = proj
-#         v_est[n_old + i] = 1.0  # Set component for this new node
-        
-#         # Normalize
-#         v_est = v_est / (torch.norm(v_est) + 1e-8)
-        
-#         # Place in augmented eigenvector matrix
-#         aug_eigenvecs[:, n_old + i] = v_est
-        
-#         # Compute corresponding eigenvalue using Rayleigh quotient
-#         Lv = L_aug @ v_est
-#         aug_eigenvals[n_old + i] = (v_est @ Lv) / (v_est @ v_est + 1e-8)
-    
-#     # Orthogonalize the complete eigenvector matrix
-#     aug_eigenvecs = gram_schmidt(aug_eigenvecs)  # Will maintain device
-    
-#     # Sort eigenvalues and eigenvectors
-#     idx = torch.argsort(aug_eigenvals)
-#     aug_eigenvals = aug_eigenvals[idx]
-#     aug_eigenvecs = aug_eigenvecs[:, idx]
-    
-#     return aug_eigenvals, aug_eigenvecs
-
-# def compute_normalized_laplacian(A):
-#     """
-#     Compute normalized Laplacian matrix
-#     L = I - D^(-1/2)AD^(-1/2)
-#     """
-#     # Get degree matrix
-#     degrees = A.sum(dim=1)
-#     D_inv_sqrt = torch.diag(1.0 / torch.sqrt(degrees + 1e-8))
-    
-#     # Compute normalized Laplacian
-#     L = torch.eye(A.shape[0]).to(A.device) - D_inv_sqrt @ A @ D_inv_sqrt
-#     return L
-
-# def gram_schmidt(vectors):
-#     """
-#     Perform Gram-Schmidt orthogonalization
-#     """
-#     basis = []
-#     for v in vectors.T:
-#         w = v.clone()
-#         for b in basis:
-#             w -= (w @ b) * b
-#         norm = torch.norm(w)
-#         if norm > 1e-8:  # Check if vector is non-zero
-#             w = w / norm
-#             basis.append(w)
-#         else:
-#             # If linear dependent, create random orthogonal vector
-#             w = torch.randn_like(v)
-#             for b in basis:
-#                 w -= (w @ b) * b
-#             w = w / torch.norm(w)
-#             basis.append(w)
-    
-#     return torch.stack(basis, dim=1)
-
 def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, features, n_orig=2120, n_syn_old=12, n_syn_new=0):
     """
     Extend spectral properties to include new synthetic nodes while maintaining full dimensions
@@ -543,7 +441,6 @@ def gram_schmidt(vectors):
         if torch.norm(v) > 1e-10:
             v = v / torch.norm(v)
         orthogonal[:, i] = v
-    
     return orthogonal
 
 def compute_new_eigenvalues(eigenvecs, A_aug, trunc_eigenvals):
@@ -564,23 +461,6 @@ def compute_new_eigenvalues(eigenvecs, A_aug, trunc_eigenvals):
     
     return aug_eigenvals
 
-print(idx_features.shape)
-print(aug_x.shape)
-print(aug_A.shape)
-# Usage:
-L_eigenvalues_truncated = L_eigenvalues[:12]
-L_eigenvectors_truncated = L_eigenvectors[:, :12]
-print(L_eigenvectors_truncated.shape)
-
-aug_eigenvals, aug_eigenvecs = extend_spectral_properties(
-    orig_eigenvals=torch.FloatTensor(L_eigenvalues_truncated),
-    orig_eigenvecs=torch.FloatTensor(L_eigenvectors_truncated), 
-    A_aug=aug_A,
-    features=idx_features,
-    n_orig=2120,
-    n_syn_old=12,
-    n_syn_new=0
-)
 def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=18, orig_eigenvals=None, orig_eigenvecs=None):
     """
     Modified to select num_new_nodes clusters with highest Frobenius norm contribution
@@ -675,76 +555,61 @@ def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=
     new_to_new = compute_new_to_new_connections(cluster_connections, k).to(device)  # Move to same device
     A_aug[n_syn:, n_syn:] = new_to_new
     
-    # Extend spectral properties if provided
-    # if orig_eigenvals is not None and orig_eigenvecs is not None:
-    #     aug_eigenvals, aug_eigenvecs = extend_spectral_properties(
-    #         orig_eigenvals,
-    #         orig_eigenvecs,
-    #         A_aug,
-    #         n_old=n_syn,
-    #         n_new=k
-    #     )
-    #     return cluster_labels, A_aug, x_aug, aug_eigenvals, aug_eigenvecs
-    
     return cluster_labels, A_aug, x_aug
-
-def compute_augmented_reconstruction(aug_eigenvals, aug_eigenvecs, L_eigenvectors, A_torch, k, threshold=0.01):
-    """
-    Compute augmented distilled matrix reconstruction and analysis
-    """
-    # Get device from input tensor
-    device = A_torch.device
     
-    # Step 1: Create diagonal matrix with 1 - eigenvalues and move to correct device
-    aug_eigenvals = aug_eigenvals.to(device)
-    aug_diagonal_matrix = torch.diag(1 - aug_eigenvals)
-
-    # Step 2: Compute normalized A_distilled
-    aug_eigenvecs = aug_eigenvecs.to(device)
-    aug_A_distilled = torch.mm(torch.mm(aug_eigenvecs, aug_diagonal_matrix), aug_eigenvecs.T)
-    print(f"Augmented A_distilled shape: {aug_A_distilled.shape}")
-
-    # Step 3: Extract the top k eigenvectors and move to device
-    V = L_eigenvectors[:, :k]  # First k eigenvectors
-    V = torch.tensor(V, dtype=torch.float64, device=device)
-    print(f"V shape: {V.shape}")
-
-    # Step 4: Ensure correct dtype and compute reconstruction
-    aug_A_distilled = aug_A_distilled.to(dtype=torch.float64, device=device)
-    aug_A_reconstructed = V @ aug_A_distilled @ V.T
-
-    # Step 5: Compute residual
-    aug_R = A_torch.to(device) - aug_A_reconstructed
-    print(f"Residual shape: {aug_R.shape}")
-
-    # Step 6: Sparsify the residual matrix
-    aug_R_sparsified = aug_R.clone()
-    aug_R_sparsified[(aug_R_sparsified > -threshold) & (aug_R_sparsified < threshold)] = 0
-
-    # Step 7: Compute statistics
-    num_nonzero = torch.count_nonzero(aug_R_sparsified).item()
-    num_zero = aug_R_sparsified.numel() - num_nonzero
-    frobenius_norm = torch.norm(aug_R_sparsified, p='fro')
-    sparsification_ratio = (num_zero / aug_R_sparsified.numel()) * 100
-
-    # Print results
-    print(f"\nSparsification Results (threshold = {threshold}):")
-    print(f"Number of nonzero elements: {num_nonzero}")
-    print(f"Number of zero elements: {num_zero}")
-    print(f"Frobenius norm of R_sparsified: {frobenius_norm}")
-    print(f"Sparsification ratio: {sparsification_ratio:.2f}%")
-
-    # Prepare results dictionary
-    results = {
-        'nonzero_count': num_nonzero,
-        'zero_count': num_zero,
-        'frobenius_norm': frobenius_norm,
-        'sparsification_ratio': sparsification_ratio,
-        'aug_A_reconstructed': aug_A_reconstructed,
-        'aug_R': aug_R
-    }
-
-    return aug_A_distilled, aug_R_sparsified, results
+def compute_augmented_reconstruction(V, aug_A, A_orig, k, threshold=0.01):
+   """
+   Compute augmented distilled matrix reconstruction and analysis
+   
+   Parameters:
+   - V: nxk eigenvector matrix for reconstruction
+   - aug_A: (k+m)x(k+m) augmented distilled matrix
+   - A_orig: nxn original adjacency matrix
+   - k: number of nodes in augmented matrix (k+m)
+   - threshold: sparsification threshold
+   
+   Returns:
+   - aug_A: (k+m)x(k+m) augmented matrix
+   - R_sparsified: nxn sparsified residual
+   - results: dictionary of metrics
+   """
+   # Get device and dtype from input tensors
+   device = A_orig.device
+   dtype = A_orig.dtype
+   
+   # Ensure all tensors are on same device and dtype
+   V = V.to(device=device, dtype=dtype)
+   aug_A = aug_A.to(device=device, dtype=dtype)
+   
+   # Compute reconstruction: V @ aug_A @ V.T
+   A_reconstructed = torch.mm(torch.mm(V, aug_A), V.T)
+   
+   # Compute residual
+   R = A_orig - A_reconstructed
+   
+   # Sparsify residual
+   R_sparsified = R.clone()
+   R_sparsified[(R_sparsified > -threshold) & (R_sparsified < threshold)] = 0
+   
+   # Compute metrics
+   metrics = {
+       'nonzero_count': torch.count_nonzero(R_sparsified).item(),
+       'zero_count': R_sparsified.numel() - torch.count_nonzero(R_sparsified).item(),
+       'frobenius_norm': torch.norm(R_sparsified, p='fro').item(),
+       'reconstruction': A_reconstructed,
+       'residual': R
+   }
+   
+   metrics['sparsification_ratio'] = (metrics['zero_count'] / R_sparsified.numel()) * 100
+   
+   # Print summary
+   print(f"\nReconstruction Results:")
+   print(f"Augmented matrix size: {k}x{k}")
+   print(f"Nonzero elements in residual: {metrics['nonzero_count']}")
+   print(f"Frobenius norm of residual: {metrics['frobenius_norm']:.4f}")
+   print(f"Sparsification ratio: {metrics['sparsification_ratio']:.2f}%")
+   
+   return aug_A, R_sparsified, metrics
 
 def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_train, reduction_rate, alpha=0.5):
     """
@@ -877,49 +742,6 @@ def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_trai
         print(f"Class {c}: {conf:.4f}")
     
     return assigned_labels
-
-# def evaluate_simple(data, args, aug_eigenvalues, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda'):
-
-#         # Check if CUDA is available when device='cuda' is requested
-#     if device == 'cuda' and not torch.cuda.is_available():
-#         print("CUDA is not available, using CPU instead")
-#         device = 'cpu'
-    
-#     # Move everything to specified device
-#     aug_features = aug_features.to(device)
-#     aug_A = aug_A.to(device)
-#     aug_labels = aug_labels.to(device)
-
-#     accs =[]
-#     agent = GraphAgent(args, data)
-#     try:
-#         acc = agent.eval_only(aug_eigenvals, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda')
-#         accs.append(acc)    
-    
-#     # Initialize model based on args.evaluate_gnn
-#     if args.evaluate_gnn == "GCN":
-#         model = GCN(
-#             num_features=aug_features.shape[1],
-#             num_classes=data.num_classes,
-#             hidden_dim=args.hidden_dim,
-#             nlayers=args.nlayers,
-#             dropout=args.dropout,
-#             lr=args.lr_gnn,
-#             weight_decay=args.wd_gnn
-#         ).to(device)
-#     else:
-#         raise ValueError(f"Unsupported model: {args.evaluate_gnn}")
-
-#         # Training loop
-#     best_val_acc = 0
-#     best_test_acc = 0
-
-
-#     print(f'\nBest results:')
-#     print(f'Val Acc: {best_val_acc:.4f}')
-#     print(f'Test Acc: {best_test_acc:.4f}')
-    
-#     return best_val_acc, best_test_acc
     
 def evaluate_augmented_graph(data, args, aug_features, aug_A, aug_labels, device='cuda'):
     """
