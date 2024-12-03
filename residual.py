@@ -763,7 +763,7 @@ def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_trai
     
     return assigned_labels
 
-def evaluate_simple(data, args, aug_features, aug_A, aug_labels, device='cuda'):
+def evaluate_simple(data, args, aug_eigenvalues, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda'):
 
         # Check if CUDA is available when device='cuda' is requested
     if device == 'cuda' and not torch.cuda.is_available():
@@ -774,6 +774,12 @@ def evaluate_simple(data, args, aug_features, aug_A, aug_labels, device='cuda'):
     aug_features = aug_features.to(device)
     aug_A = aug_A.to(device)
     aug_labels = aug_labels.to(device)
+
+    accs =[]
+    agent = GraphAgent(args, data)
+    try:
+        acc = agent.eval_only(aug_eigenvals, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda')
+        accs.append(acc)    
     
     # Initialize model based on args.evaluate_gnn
     if args.evaluate_gnn == "GCN":
