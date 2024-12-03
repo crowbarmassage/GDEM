@@ -113,7 +113,7 @@ def run_agent(aug_eigenvalues, aug_eigenvecs):
     args.eigen_k = args.eigen_k if args.eigen_k < n_syn else n_syn
     
     ####### Change this line
-    args.eigen_k = len(eigenvals)
+    args.eigen_k = len(aug_eigenvals)
     # Add these print statements to distill.py
     print(f"Training set size: {len(data.idx_train)}")
     print(f"Reduction rate: {args.reduction_rate}")
