@@ -33,13 +33,22 @@ def init_params(module):
         module.weight.data.normal_(mean=0.0, std=0.02)
         print("Initialized Weight Parameters with Normal Distribution") 
 
-def normalize_features(mx):
-     rowsum = mx.sum(1)
-     r_inv = torch.pow(rowsum, -1)
-     r_inv[torch.isinf(r_inv)] = 0.
-     r_mat_inv = torch.diag(r_inv)
-     mx = r_mat_inv @ mx
-     return mx
+# def normalize_features(mx):
+#      rowsum = mx.sum(1)
+#      r_inv = torch.pow(rowsum, -1)
+#      r_inv[torch.isinf(r_inv)] = 0.
+#      r_mat_inv = torch.diag(r_inv)
+#      mx = r_mat_inv @ mx
+#      return mx
+
+def normalize_features(mx, device='cuda'):
+    mx = mx.to(device)
+    rowsum = mx.sum(1)
+    r_inv = torch.pow(rowsum, -1)
+    r_inv[torch.isinf(r_inv)] = 0.
+    r_mat_inv = torch.diag(r_inv)
+    mx = r_mat_inv @ mx
+    return mx
 
 def normalize_adj(mx):
     """Normalize sparse adjacency matrix,
@@ -103,31 +112,60 @@ def get_subspace_embed(eigenvecs, x):
     print("get_subspace_embed:  sub_embed Matrix Shape:  ", sub_embed.shape)
     return x_trans, sub_embed
 
-def get_subspace_covariance_matrix(eigenvecs, x):
+# def get_subspace_covariance_matrix(eigenvecs, x):
+#     x_trans = eigenvecs.T @ x  # kd
+#     x_trans = F.normalize(input=x_trans, p=2, dim=1)
+#     x_trans_unsqueeze = x_trans.unsqueeze(1)  # k1d
+#     co_matrix = torch.bmm(x_trans_unsqueeze.permute(0, 2, 1), x_trans_unsqueeze)  # kd1 @ k1d = kdd
+#     # print("get_subspace_covariance_matrix:  Covariance Matrix Shape:  ", co_matrix.shape)
+#     return co_matrix
+
+def get_subspace_covariance_matrix(eigenvecs, x, device='cuda'):
+    eigenvecs = eigenvecs.to(device)
+    x = x.to(device)
     x_trans = eigenvecs.T @ x  # kd
     x_trans = F.normalize(input=x_trans, p=2, dim=1)
     x_trans_unsqueeze = x_trans.unsqueeze(1)  # k1d
-    co_matrix = torch.bmm(x_trans_unsqueeze.permute(0, 2, 1), x_trans_unsqueeze)  # kd1 @ k1d = kdd
-    # print("get_subspace_covariance_matrix:  Covariance Matrix Shape:  ", co_matrix.shape)
+    co_matrix = torch.bmm(x_trans_unsqueeze.permute(0, 2, 1), x_trans_unsqueeze)  # kdd
     return co_matrix
-  
-def get_embed_sum(eigenvals, eigenvecs, x):
+    
+# def get_embed_sum(eigenvals, eigenvecs, x):
+#     x_trans = eigenvecs.T @ x  # kd
+#     x_trans = torch.diag(1 - eigenvals) @ x_trans # kd
+#     embed_sum = eigenvecs @ x_trans # n1k @ kd = n1d
+#     # print("get_embed_sum:  Embedding Matrix Shape:  ", embed_sum.shape)
+#     return embed_sum
+
+def get_embed_sum(eigenvals, eigenvecs, x, device='cuda'):
+    eigenvals = eigenvals.to(device)
+    eigenvecs = eigenvecs.to(device)
+    x = x.to(device)
     x_trans = eigenvecs.T @ x  # kd
     x_trans = torch.diag(1 - eigenvals) @ x_trans # kd
     embed_sum = eigenvecs @ x_trans # n1k @ kd = n1d
-    # print("get_embed_sum:  Embedding Matrix Shape:  ", embed_sum.shape)
     return embed_sum
+    
+# def get_embed_mean(embed_sum, label):
+#     class_matrix = F.one_hot(label).float()  # nc
+#     class_matrix = class_matrix.T  # cn
+#     embed_sum = class_matrix @ embed_sum  # cd
+#     mean_weight = (1 / class_matrix.sum(1)).unsqueeze(-1)  # c1
+#     embed_mean = mean_weight * embed_sum
+#     embed_mean = F.normalize(input=embed_mean, p=2, dim=1) # cd
+#     # print("get_embed_mean:  embed_mean shape:  ", embed_mean.shape)
+#     return embed_mean
 
-def get_embed_mean(embed_sum, label):
+def get_embed_mean(embed_sum, label, device='cuda'):
+    embed_sum = embed_sum.to(device)
+    label = label.to(device)
     class_matrix = F.one_hot(label).float()  # nc
     class_matrix = class_matrix.T  # cn
     embed_sum = class_matrix @ embed_sum  # cd
     mean_weight = (1 / class_matrix.sum(1)).unsqueeze(-1)  # c1
     embed_mean = mean_weight * embed_sum
     embed_mean = F.normalize(input=embed_mean, p=2, dim=1) # cd
-    # print("get_embed_mean:  embed_mean shape:  ", embed_mean.shape)
     return embed_mean
-
+    
 def get_train_lcc(idx_lcc, idx_train, y_full, num_nodes, num_classes):
     idx_train_lcc = list(set(idx_train).intersection(set(idx_lcc)))
     y_full = y_full.cpu().numpy()
