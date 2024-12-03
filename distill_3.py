@@ -96,7 +96,8 @@ def run_agent(aug_eigenvalues, aug_eigenvecs):
     else:
         data_full = get_dataset(args.dataset, args.normalize_features)
         data = Transd2Ind(data_full)
-    
+
+    ####### Change this line
     # dataset_dir = f"./data/{args.dataset}"
     dataset_dir = '/content/drive/MyDrive/All_DataAnalytics_AI/CS_514/Project/saved_citeseer/citeseer-0.1/'
     
@@ -110,6 +111,8 @@ def run_agent(aug_eigenvalues, aug_eigenvecs):
     
     n_syn = int(len(data.idx_train) * args.reduction_rate)
     args.eigen_k = args.eigen_k if args.eigen_k < n_syn else n_syn
+    
+    ####### Change this line
     args.eigen_k = 30
     # Add these print statements to distill.py
     print(f"Training set size: {len(data.idx_train)}")
