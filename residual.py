@@ -364,108 +364,223 @@ def ensure_connectivity(adj_matrix):
     
     return connected_adj
 
-def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_new):
+# def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_new):
+#     """
+#     Extend spectral properties using perturbation theory
+#     """
+#     # Get device from A_aug
+#     device = A_aug.device
+#     dtype = A_aug.dtype
+    
+#     # Ensure input tensors are on correct device
+#     orig_eigenvals = orig_eigenvals.to(device)
+#     orig_eigenvecs = orig_eigenvecs.to(device)
+#     print("Original eigenvectors Shape: ", orig_eigenvecs.shape)
+#     # Convert to normalized Laplacian space
+#     L_aug = compute_normalized_laplacian(A_aug)
+    
+#     # Extract perturbation blocks
+#     L11 = L_aug[:n_old, :n_old]  # (12 x 12)
+#     L12 = L_aug[:n_old, n_old:]  # (12 x 2)
+#     L21 = L_aug[n_old:, :n_old]  # (2 x 12)
+#     L22 = L_aug[n_old:, n_old:]  # (2 x 2)
+    
+#     # Initialize augmented matrices on correct device
+#     n_total = n_old + n_new  # 14
+#     aug_eigenvals = torch.zeros(n_total, dtype=dtype, device=device)
+#     aug_eigenvecs = torch.zeros((n_total, n_total), dtype=dtype, device=device)
+    
+#     # Copy original values
+#     aug_eigenvals[:n_old] = orig_eigenvals
+#     aug_eigenvecs[:n_old, :n_old] = orig_eigenvecs
+    
+#     # First order eigenvalue corrections for original eigenvalues
+#     for i in range(n_old):
+#         v_i = orig_eigenvecs[:, i]
+#         correction = torch.sum(L12 @ L21 @ v_i * v_i)
+#         aug_eigenvals[i] += correction
+    
+#     # Compute new eigenvalues for added nodes
+#     for i in range(n_new):
+#         # Estimate eigenvector for new node
+#         v_est = torch.zeros(n_old + n_new, dtype=dtype, device=device)
+        
+#         # Project using connections to original nodes
+#         proj = L21[i] @ orig_eigenvecs
+#         v_est[:n_old] = proj
+#         v_est[n_old + i] = 1.0  # Set component for this new node
+        
+#         # Normalize
+#         v_est = v_est / (torch.norm(v_est) + 1e-8)
+        
+#         # Place in augmented eigenvector matrix
+#         aug_eigenvecs[:, n_old + i] = v_est
+        
+#         # Compute corresponding eigenvalue using Rayleigh quotient
+#         Lv = L_aug @ v_est
+#         aug_eigenvals[n_old + i] = (v_est @ Lv) / (v_est @ v_est + 1e-8)
+    
+#     # Orthogonalize the complete eigenvector matrix
+#     aug_eigenvecs = gram_schmidt(aug_eigenvecs)  # Will maintain device
+    
+#     # Sort eigenvalues and eigenvectors
+#     idx = torch.argsort(aug_eigenvals)
+#     aug_eigenvals = aug_eigenvals[idx]
+#     aug_eigenvecs = aug_eigenvecs[:, idx]
+    
+#     return aug_eigenvals, aug_eigenvecs
+
+# def compute_normalized_laplacian(A):
+#     """
+#     Compute normalized Laplacian matrix
+#     L = I - D^(-1/2)AD^(-1/2)
+#     """
+#     # Get degree matrix
+#     degrees = A.sum(dim=1)
+#     D_inv_sqrt = torch.diag(1.0 / torch.sqrt(degrees + 1e-8))
+    
+#     # Compute normalized Laplacian
+#     L = torch.eye(A.shape[0]).to(A.device) - D_inv_sqrt @ A @ D_inv_sqrt
+#     return L
+
+# def gram_schmidt(vectors):
+#     """
+#     Perform Gram-Schmidt orthogonalization
+#     """
+#     basis = []
+#     for v in vectors.T:
+#         w = v.clone()
+#         for b in basis:
+#             w -= (w @ b) * b
+#         norm = torch.norm(w)
+#         if norm > 1e-8:  # Check if vector is non-zero
+#             w = w / norm
+#             basis.append(w)
+#         else:
+#             # If linear dependent, create random orthogonal vector
+#             w = torch.randn_like(v)
+#             for b in basis:
+#                 w -= (w @ b) * b
+#             w = w / torch.norm(w)
+#             basis.append(w)
+    
+#     return torch.stack(basis, dim=1)
+
+def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, features, n_orig=2120, n_syn_old=12, n_syn_new=0):
     """
-    Extend spectral properties using perturbation theory
+    Extend spectral properties to include new synthetic nodes while maintaining full dimensions
+    
+    Parameters:
+    - orig_eigenvals: Original eigenvalues (n_syn_old,)
+    - orig_eigenvecs: Original eigenvectors (n_orig x n_syn_old)
+    - A_aug: Augmented adjacency matrix ((n_syn_old + n_syn_new) x (n_syn_old + n_syn_new))
+    - features: Original node features (n_orig x d)
+    - n_orig: Number of original nodes (2120)
+    - n_syn_old: Number of original synthetic nodes (12)
+    - n_syn_new: Number of new synthetic nodes (2)
+    
+    Returns:
+    - aug_eigenvals: Augmented eigenvalues (n_syn_old + n_syn_new,)
+    - aug_eigenvecs: Augmented eigenvectors (n_orig x (n_syn_old + n_syn_new))
     """
-    # Get device from A_aug
-    device = A_aug.device
-    dtype = A_aug.dtype
+    # Initialize augmented eigenvectors
+    aug_eigenvecs = torch.zeros((n_orig, n_syn_old + n_syn_new))
     
-    # Ensure input tensors are on correct device
-    orig_eigenvals = orig_eigenvals.to(device)
-    orig_eigenvecs = orig_eigenvecs.to(device)
-    print("Original eigenvectors Shape: ", orig_eigenvecs.shape)
-    # Convert to normalized Laplacian space
-    L_aug = compute_normalized_laplacian(A_aug)
+    # Copy original eigenvectors
+    aug_eigenvecs[:, :n_syn_old] = orig_eigenvecs
     
-    # Extract perturbation blocks
-    L11 = L_aug[:n_old, :n_old]  # (12 x 12)
-    L12 = L_aug[:n_old, n_old:]  # (12 x 2)
-    L21 = L_aug[n_old:, :n_old]  # (2 x 12)
-    L22 = L_aug[n_old:, n_old:]  # (2 x 2)
-    
-    # Initialize augmented matrices on correct device
-    n_total = n_old + n_new  # 14
-    aug_eigenvals = torch.zeros(n_total, dtype=dtype, device=device)
-    aug_eigenvecs = torch.zeros((n_total, n_total), dtype=dtype, device=device)
-    
-    # Copy original values
-    aug_eigenvals[:n_old] = orig_eigenvals
-    aug_eigenvecs[:n_old, :n_old] = orig_eigenvecs
-    
-    # First order eigenvalue corrections for original eigenvalues
-    for i in range(n_old):
-        v_i = orig_eigenvecs[:, i]
-        correction = torch.sum(L12 @ L21 @ v_i * v_i)
-        aug_eigenvals[i] += correction
-    
-    # Compute new eigenvalues for added nodes
-    for i in range(n_new):
-        # Estimate eigenvector for new node
-        v_est = torch.zeros(n_old + n_new, dtype=dtype, device=device)
+    # For each new synthetic node
+    for i in range(n_syn_new):
+        # Project original nodes onto new synthetic node space
+        projection = compute_node_projection(features, A_aug[n_syn_old + i, :n_syn_old])
         
-        # Project using connections to original nodes
-        proj = L21[i] @ orig_eigenvecs
-        v_est[:n_old] = proj
-        v_est[n_old + i] = 1.0  # Set component for this new node
-        
-        # Normalize
-        v_est = v_est / (torch.norm(v_est) + 1e-8)
-        
-        # Place in augmented eigenvector matrix
-        aug_eigenvecs[:, n_old + i] = v_est
-        
-        # Compute corresponding eigenvalue using Rayleigh quotient
-        Lv = L_aug @ v_est
-        aug_eigenvals[n_old + i] = (v_est @ Lv) / (v_est @ v_est + 1e-8)
+        # Add new eigenvector column
+        aug_eigenvecs[:, n_syn_old + i] = projection
     
-    # Orthogonalize the complete eigenvector matrix
-    aug_eigenvecs = gram_schmidt(aug_eigenvecs)  # Will maintain device
+    # Orthogonalize the new vectors with respect to existing ones
+    aug_eigenvecs = gram_schmidt(aug_eigenvecs)
     
-    # Sort eigenvalues and eigenvectors
-    idx = torch.argsort(aug_eigenvals)
-    aug_eigenvals = aug_eigenvals[idx]
-    aug_eigenvecs = aug_eigenvecs[:, idx]
+    # Compute new eigenvalues using Rayleigh quotient
+    aug_eigenvals = compute_new_eigenvalues(aug_eigenvecs, A_aug, orig_eigenvals)
     
     return aug_eigenvals, aug_eigenvecs
 
-def compute_normalized_laplacian(A):
+def compute_node_projection(features, connections):
     """
-    Compute normalized Laplacian matrix
-    L = I - D^(-1/2)AD^(-1/2)
-    """
-    # Get degree matrix
-    degrees = A.sum(dim=1)
-    D_inv_sqrt = torch.diag(1.0 / torch.sqrt(degrees + 1e-8))
+    Compute projection of original nodes onto new synthetic node
     
-    # Compute normalized Laplacian
-    L = torch.eye(A.shape[0]).to(A.device) - D_inv_sqrt @ A @ D_inv_sqrt
-    return L
+    Parameters:
+    - features: Original node features (n_orig x d)
+    - connections: Connection strengths to existing synthetic nodes
+    
+    Returns:
+    - projection: New eigenvector column (n_orig,)
+    """
+    # Use feature similarity and connection patterns
+    feature_sim = torch.mm(features, features.t())
+    
+    # Combine with connection information
+    projection = feature_sim @ connections
+    
+    # Normalize
+    projection = projection / torch.norm(projection)
+    
+    return projection
 
 def gram_schmidt(vectors):
     """
-    Perform Gram-Schmidt orthogonalization
+    Orthogonalize vectors while maintaining dimensions
     """
-    basis = []
-    for v in vectors.T:
-        w = v.clone()
-        for b in basis:
-            w -= (w @ b) * b
-        norm = torch.norm(w)
-        if norm > 1e-8:  # Check if vector is non-zero
-            w = w / norm
-            basis.append(w)
-        else:
-            # If linear dependent, create random orthogonal vector
-            w = torch.randn_like(v)
-            for b in basis:
-                w -= (w @ b) * b
-            w = w / torch.norm(w)
-            basis.append(w)
+    n, k = vectors.shape
+    orthogonal = torch.zeros_like(vectors)
     
-    return torch.stack(basis, dim=1)
+    for i in range(k):
+        v = vectors[:, i].clone()
+        # Subtract projections onto previous vectors
+        for j in range(i):
+            v = v - (v @ orthogonal[:, j]) * orthogonal[:, j]
+        # Normalize
+        if torch.norm(v) > 1e-10:
+            v = v / torch.norm(v)
+        orthogonal[:, i] = v
+    
+    return orthogonal
 
+def compute_new_eigenvalues(eigenvecs, A_aug, trunc_eigenvals):
+    """
+    Compute eigenvalues for augmented system using Rayleigh quotient
+    """
+    n_total = A_aug.shape[0]
+    aug_eigenvals = torch.zeros(n_total)
+    
+    # Keep original eigenvalues
+    aug_eigenvals[:len(trunc_eigenvals)] = trunc_eigenvals
+    
+    # Compute new eigenvalues
+    for i in range(len(trunc_eigenvals), n_total):
+        v = eigenvecs[:, i]
+        # Rayleigh quotient
+        aug_eigenvals[i] = (v @ A_aug @ v) / (v @ v)
+    
+    return aug_eigenvals
+
+print(idx_features.shape)
+print(aug_x.shape)
+print(aug_A.shape)
+# Usage:
+L_eigenvalues_truncated = L_eigenvalues[:12]
+L_eigenvectors_truncated = L_eigenvectors[:, :12]
+print(L_eigenvectors_truncated.shape)
+
+aug_eigenvals, aug_eigenvecs = extend_spectral_properties(
+    orig_eigenvals=torch.FloatTensor(L_eigenvalues_truncated),
+    orig_eigenvecs=torch.FloatTensor(L_eigenvectors_truncated), 
+    A_aug=aug_A,
+    features=idx_features,
+    n_orig=2120,
+    n_syn_old=12,
+    n_syn_new=0
+)
 def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=18, orig_eigenvals=None, orig_eigenvecs=None):
     """
     Modified to select num_new_nodes clusters with highest Frobenius norm contribution
