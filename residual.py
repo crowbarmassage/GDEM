@@ -243,94 +243,191 @@ def plot_residual_histogram(R_flattened, num_bins=50, figsize=(10, 6)):
     plt.grid(True)
     plt.show()
 
+# def compute_new_connections(cluster_connections, x_syn, features, method='combined'):
+#     """
+#     Compute connections between new and existing synthetic nodes (k x 12)
+    
+#     Parameters:
+#     - cluster_connections: Average residual patterns for each cluster (k x 2120)
+#     - x_syn: Existing synthetic features (12 x d)
+#     - features: Original features (2120 x d)
+#     - method: How to compute connections ('residual', 'feature', or 'combined')
+    
+#     Returns:
+#     - Connection matrix between new and existing nodes (k x 12)
+#     """
+#     k = len(cluster_connections)
+#     n_syn = len(x_syn)
+    
+#     if method == 'residual':
+#         # Project synthetic nodes into original space based on feature similarity
+#         syn_patterns = project_synthetic_to_original(x_syn, features)  # (12 x 2120)
+        
+#         # Compute similarity between cluster patterns and synthetic patterns
+#         connections = torch.tensor(
+#             np.dot(cluster_connections, syn_patterns.T)  # (k x 12)
+#         ).float()
+        
+#     elif method == 'feature':
+#         # Direct feature similarity
+#         connections = 1 - torch.cdist(
+#             torch.tensor(cluster_connections @ features).float(), 
+#             x_syn
+#         )  # (k x 12)
+        
+#     else:  # combined
+#         # Combine both residual and feature similarities
+#         syn_patterns = project_synthetic_to_original(x_syn, features)
+#         residual_sim = torch.tensor(
+#             np.dot(cluster_connections, syn_patterns.T)
+#         ).float()
+        
+#         feature_sim = 1 - torch.cdist(
+#             torch.tensor(cluster_connections @ features).float(), 
+#             x_syn
+#         )
+        
+#         connections = 0.5 * (residual_sim + feature_sim)
+    
+#     # Normalize and threshold
+#     connections = torch.sigmoid(connections)  # Scale to [0,1]
+#     connections = threshold_sparse(connections, sparsity=0.7)
+    
+#     return connections
+
 def compute_new_connections(cluster_connections, x_syn, features, method='combined'):
-    """
-    Compute connections between new and existing synthetic nodes (k x 12)
+    """Compute connections between new and existing synthetic nodes"""
+    # Get device and dtype from x_syn
+    device = x_syn.device
+    dtype = x_syn.dtype
     
-    Parameters:
-    - cluster_connections: Average residual patterns for each cluster (k x 2120)
-    - x_syn: Existing synthetic features (12 x d)
-    - features: Original features (2120 x d)
-    - method: How to compute connections ('residual', 'feature', or 'combined')
+    # Convert cluster_connections to tensor on the correct device right at the start
+    cluster_connections = torch.tensor(cluster_connections, dtype=dtype, device=device) if not torch.is_tensor(cluster_connections) else cluster_connections.to(device)
     
-    Returns:
-    - Connection matrix between new and existing nodes (k x 12)
-    """
-    k = len(cluster_connections)
-    n_syn = len(x_syn)
+    # Also ensure x_syn is on the right device
+    x_syn = x_syn.to(device)
     
     if method == 'residual':
-        # Project synthetic nodes into original space based on feature similarity
-        syn_patterns = project_synthetic_to_original(x_syn, features)  # (12 x 2120)
-        
-        # Compute similarity between cluster patterns and synthetic patterns
+        syn_patterns = project_synthetic_to_original(x_syn, features)  # Already device-aware
+        # Move data to CPU only for numpy operation
+        cluster_connections_cpu = cluster_connections.cpu().numpy()
+        syn_patterns_cpu = syn_patterns.cpu().numpy()
         connections = torch.tensor(
-            np.dot(cluster_connections, syn_patterns.T)  # (k x 12)
-        ).float()
-        
-    elif method == 'feature':
-        # Direct feature similarity
-        connections = 1 - torch.cdist(
-            torch.tensor(cluster_connections @ features).float(), 
-            x_syn
-        )  # (k x 12)
-        
-    else:  # combined
-        # Combine both residual and feature similarities
-        syn_patterns = project_synthetic_to_original(x_syn, features)
-        residual_sim = torch.tensor(
-            np.dot(cluster_connections, syn_patterns.T)
-        ).float()
-        
-        feature_sim = 1 - torch.cdist(
-            torch.tensor(cluster_connections @ features).float(), 
-            x_syn
+            np.dot(cluster_connections_cpu, syn_patterns_cpu.T), 
+            dtype=dtype, 
+            device=device
         )
+    elif method == 'feature':
+        features = torch.tensor(features, dtype=dtype, device=device) if not torch.is_tensor(features) else features.to(device)
+        connections = 1 - torch.cdist(cluster_connections @ features, x_syn)
+    else:  # combined
+        syn_patterns = project_synthetic_to_original(x_syn, features)
+        
+        # CPU operations
+        cluster_connections_cpu = cluster_connections.cpu().numpy()
+        syn_patterns_cpu = syn_patterns.cpu().numpy()
+        residual_sim = torch.tensor(
+            np.dot(cluster_connections_cpu, syn_patterns_cpu.T),
+            dtype=dtype,
+            device=device
+        )
+        
+        # GPU operations
+        features = torch.tensor(features, dtype=dtype, device=device) if not torch.is_tensor(features) else features.to(device)
+        feature_sim = 1 - torch.cdist(cluster_connections @ features, x_syn)
         
         connections = 0.5 * (residual_sim + feature_sim)
     
-    # Normalize and threshold
-    connections = torch.sigmoid(connections)  # Scale to [0,1]
+    connections = torch.sigmoid(connections)
     connections = threshold_sparse(connections, sparsity=0.7)
     
     return connections
 
+# def compute_new_to_new_connections(cluster_connections, k):
+#     """
+#     Compute connections between new nodes (k x k)
+    
+#     Parameters:
+#     - cluster_connections: Average residual patterns for each cluster (k x 2120)
+#     - k: Number of new nodes
+    
+#     Returns:
+#     - Adjacency matrix for new nodes (k x k)
+#     """
+#     # Compute similarity between cluster residual patterns
+#     pattern_sim = np.dot(cluster_connections, cluster_connections.T)  # (k x k)
+    
+#     # Normalize by pattern magnitudes (cosine similarity)
+#     norms = np.linalg.norm(cluster_connections, axis=1)
+#     pattern_sim = pattern_sim / (norms[:, None] * norms[None, :])
+    
+#     # Convert to tensor and normalize
+#     connections = torch.tensor(pattern_sim).float()
+#     connections = torch.sigmoid(connections)
+    
+#     # Make symmetric
+#     connections = 0.5 * (connections + connections.T)
+    
+#     # Set diagonal to 0 (no self-loops)
+#     connections.fill_diagonal_(0)
+    
+#     # Sparsify while ensuring connectivity
+#     connections = ensure_sparse_connectivity(connections)
+    
+#     return connections
+
 def compute_new_to_new_connections(cluster_connections, k):
-    """
-    Compute connections between new nodes (k x k)
+    """Compute connections between new nodes"""
+    # Get device from existing tensor or use same as cluster_connections
+    if torch.is_tensor(cluster_connections):
+        device = cluster_connections.device
+        dtype = cluster_connections.dtype
+        cluster_connections = cluster_connections.to(device)
+    else:
+        # If not a tensor, use CUDA if available
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        dtype = torch.float32
+        cluster_connections = torch.tensor(cluster_connections, dtype=dtype, device=device)
     
-    Parameters:
-    - cluster_connections: Average residual patterns for each cluster (k x 2120)
-    - k: Number of new nodes
+    # Compute similarity
+    pattern_sim = torch.mm(cluster_connections, cluster_connections.t())
     
-    Returns:
-    - Adjacency matrix for new nodes (k x k)
-    """
-    # Compute similarity between cluster residual patterns
-    pattern_sim = np.dot(cluster_connections, cluster_connections.T)  # (k x k)
-    
-    # Normalize by pattern magnitudes (cosine similarity)
-    norms = np.linalg.norm(cluster_connections, axis=1)
-    pattern_sim = pattern_sim / (norms[:, None] * norms[None, :])
+    # Normalize by pattern magnitudes
+    norms = torch.norm(cluster_connections, dim=1)
+    pattern_sim = pattern_sim / (torch.outer(norms, norms) + 1e-8)
     
     # Convert to tensor and normalize
-    connections = torch.tensor(pattern_sim).float()
-    connections = torch.sigmoid(connections)
+    connections = torch.sigmoid(pattern_sim)
     
     # Make symmetric
-    connections = 0.5 * (connections + connections.T)
+    connections = 0.5 * (connections + connections.t())
     
-    # Set diagonal to 0 (no self-loops)
+    # Set diagonal to 0
     connections.fill_diagonal_(0)
     
     # Sparsify while ensuring connectivity
     connections = ensure_sparse_connectivity(connections)
     
     return connections
+# def project_synthetic_to_original(x_syn, features):
+#     """Project synthetic nodes into original space using feature similarity"""
+#     sim_matrix = torch.cdist(x_syn, torch.tensor(features).float())
+#     weights = torch.softmax(-sim_matrix, dim=1)
+#     return weights
 
 def project_synthetic_to_original(x_syn, features):
     """Project synthetic nodes into original space using feature similarity"""
-    sim_matrix = torch.cdist(x_syn, torch.tensor(features).float())
+    # Get device and dtype from x_syn
+    device = x_syn.device
+    dtype = x_syn.dtype
+    
+    # Convert features to tensor with explicit device placement
+    if not torch.is_tensor(features):
+        features_tensor = torch.tensor(features, dtype=dtype, device=device)
+    else:
+        features_tensor = features.to(device)
+    
+    sim_matrix = torch.cdist(x_syn, features_tensor)
     weights = torch.softmax(-sim_matrix, dim=1)
     return weights
 
