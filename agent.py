@@ -45,8 +45,8 @@ class GraphAgent:
         idx_train = data.idx_train
         self.y_syn = torch.LongTensor(self.generate_labels_syn(y_full[idx_train], args.reduction_rate)).cuda()
         self.flag = flag
-        init_syn_feat = self.get_init_syn_feat(dataset=args.dataset, reduction_rate=args.reduction_rate, expID=args.expID, self.flag)
-        init_syn_eigenvecs = self.get_init_syn_eigenvecs(self.n_syn, self.num_classes, self.flag)
+        init_syn_feat = self.get_init_syn_feat(dataset=args.dataset, reduction_rate=args.reduction_rate, expID=args.expID, flag=self.flag)
+        init_syn_eigenvecs = self.get_init_syn_eigenvecs(self.n_syn, self.num_classes, flag=self.flag)
         print("init_syn_feat.shape:  ", init_syn_feat.shape)
         init_syn_eigenvecs = init_syn_eigenvecs[:, :args.eigen_k]
         print("init_syn_eigenvecs.shape:  ", init_syn_eigenvecs.shape)
