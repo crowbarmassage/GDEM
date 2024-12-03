@@ -755,42 +755,100 @@ def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=
     
     return cluster_labels, A_aug, x_aug
 
+# def compute_augmented_reconstruction(aug_eigenvals, aug_eigenvecs, L_eigenvectors, A_torch, k, threshold=0.01):
+#     """
+#     Compute augmented distilled matrix reconstruction and analysis
+    
+#     Args:
+#         aug_eigenvals (torch.Tensor): Augmented eigenvalues
+#         aug_eigenvecs (torch.Tensor): Augmented eigenvectors
+#         L_eigenvectors (numpy.ndarray): Original Laplacian eigenvectors
+#         A_torch (torch.Tensor): Original adjacency matrix as torch tensor
+#         k (int): Number of eigenvectors to use
+#         threshold (float): Threshold for sparsification
+        
+#     Returns:
+#         tuple: (aug_A_distilled, aug_R_sparsified, results) containing:
+#             - aug_A_distilled: Augmented distilled adjacency matrix
+#             - aug_R_sparsified: Sparsified residual matrix
+#             - results: Dictionary with analysis results
+#     """
+#     # Step 1: Create diagonal matrix with 1 - eigenvalues
+#     aug_diagonal_matrix = torch.diag(1 - aug_eigenvals)
+
+#     # Step 2: Compute normalized A_distilled
+#     aug_A_distilled = torch.mm(torch.mm(aug_eigenvecs, aug_diagonal_matrix), aug_eigenvecs.T)
+#     print(f"Augmented A_distilled shape: {aug_A_distilled.shape}")
+
+#     # Step 3: Extract the top k eigenvectors
+#     V = L_eigenvectors[:, :k]  # First k eigenvectors
+#     V = torch.tensor(V, dtype=torch.float64)
+#     print(f"V shape: {V.shape}")
+
+#     # Step 4: Ensure correct dtype and compute reconstruction
+#     aug_A_distilled = aug_A_distilled.to(dtype=torch.float64)
+#     aug_A_reconstructed = V @ aug_A_distilled @ V.T
+
+#     # Step 5: Compute residual
+#     aug_R = A_torch - aug_A_reconstructed
+#     print(f"Residual shape: {aug_R.shape}")
+
+#     # Step 6: Sparsify the residual matrix
+#     aug_R_sparsified = aug_R.clone()
+#     aug_R_sparsified[(aug_R_sparsified > -threshold) & (aug_R_sparsified < threshold)] = 0
+
+#     # Step 7: Compute statistics
+#     num_nonzero = torch.count_nonzero(aug_R_sparsified).item()
+#     num_zero = aug_R_sparsified.numel() - num_nonzero
+#     frobenius_norm = torch.norm(aug_R_sparsified, p='fro')
+#     sparsification_ratio = (num_zero / aug_R_sparsified.numel()) * 100
+
+#     # Print results
+#     print(f"\nSparsification Results (threshold = {threshold}):")
+#     print(f"Number of nonzero elements: {num_nonzero}")
+#     print(f"Number of zero elements: {num_zero}")
+#     print(f"Frobenius norm of R_sparsified: {frobenius_norm}")
+#     print(f"Sparsification ratio: {sparsification_ratio:.2f}%")
+
+#     # Prepare results dictionary
+#     results = {
+#         'nonzero_count': num_nonzero,
+#         'zero_count': num_zero,
+#         'frobenius_norm': frobenius_norm,
+#         'sparsification_ratio': sparsification_ratio,
+#         'aug_A_reconstructed': aug_A_reconstructed,
+#         'aug_R': aug_R
+#     }
+
+#     return aug_A_distilled, aug_R_sparsified, results
+
 def compute_augmented_reconstruction(aug_eigenvals, aug_eigenvecs, L_eigenvectors, A_torch, k, threshold=0.01):
     """
     Compute augmented distilled matrix reconstruction and analysis
-    
-    Args:
-        aug_eigenvals (torch.Tensor): Augmented eigenvalues
-        aug_eigenvecs (torch.Tensor): Augmented eigenvectors
-        L_eigenvectors (numpy.ndarray): Original Laplacian eigenvectors
-        A_torch (torch.Tensor): Original adjacency matrix as torch tensor
-        k (int): Number of eigenvectors to use
-        threshold (float): Threshold for sparsification
-        
-    Returns:
-        tuple: (aug_A_distilled, aug_R_sparsified, results) containing:
-            - aug_A_distilled: Augmented distilled adjacency matrix
-            - aug_R_sparsified: Sparsified residual matrix
-            - results: Dictionary with analysis results
     """
-    # Step 1: Create diagonal matrix with 1 - eigenvalues
+    # Get device from input tensor
+    device = A_torch.device
+    
+    # Step 1: Create diagonal matrix with 1 - eigenvalues and move to correct device
+    aug_eigenvals = aug_eigenvals.to(device)
     aug_diagonal_matrix = torch.diag(1 - aug_eigenvals)
 
     # Step 2: Compute normalized A_distilled
+    aug_eigenvecs = aug_eigenvecs.to(device)
     aug_A_distilled = torch.mm(torch.mm(aug_eigenvecs, aug_diagonal_matrix), aug_eigenvecs.T)
     print(f"Augmented A_distilled shape: {aug_A_distilled.shape}")
 
-    # Step 3: Extract the top k eigenvectors
+    # Step 3: Extract the top k eigenvectors and move to device
     V = L_eigenvectors[:, :k]  # First k eigenvectors
-    V = torch.tensor(V, dtype=torch.float64)
+    V = torch.tensor(V, dtype=torch.float64, device=device)
     print(f"V shape: {V.shape}")
 
     # Step 4: Ensure correct dtype and compute reconstruction
-    aug_A_distilled = aug_A_distilled.to(dtype=torch.float64)
+    aug_A_distilled = aug_A_distilled.to(dtype=torch.float64, device=device)
     aug_A_reconstructed = V @ aug_A_distilled @ V.T
 
     # Step 5: Compute residual
-    aug_R = A_torch - aug_A_reconstructed
+    aug_R = A_torch.to(device) - aug_A_reconstructed
     print(f"Residual shape: {aug_R.shape}")
 
     # Step 6: Sparsify the residual matrix
@@ -821,8 +879,6 @@ def compute_augmented_reconstruction(aug_eigenvals, aug_eigenvecs, L_eigenvector
     }
 
     return aug_A_distilled, aug_R_sparsified, results
-
-
 
 def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_train, reduction_rate, alpha=0.5):
     """
