@@ -44,7 +44,7 @@ def manage_gpu_memory():
 #         torch.cuda.empty_cache()  # Clear cache after each chunk
 #     return co_matrix
 
-def run_agent(aug_eigenvals, aug_eigenvecs, eigenvals_lcc, eigenvecs_lcc):
+def run_agent(aug_eigenvals, aug_eigenvecs, aug_features, eigenvals_lcc, eigenvecs_lcc):
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_id", type=int, default=0, help="gpu id")
