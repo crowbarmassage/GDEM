@@ -52,8 +52,8 @@ class GraphAgent:
         print("init_syn_feat.shape:  ", init_syn_feat.shape)
         init_syn_eigenvecs = init_syn_eigenvecs[:, :args.eigen_k]
         print("init_syn_eigenvecs.shape:  ", init_syn_eigenvecs.shape)
-        # if self.flag == 0:
-        self.reset_parameters(init_syn_feat, init_syn_eigenvecs)
+        if self.flag == 0:
+            self.reset_parameters(init_syn_feat, init_syn_eigenvecs)
 
 
     def reset_parameters(self, init_syn_feat, init_syn_eigenvecs):
