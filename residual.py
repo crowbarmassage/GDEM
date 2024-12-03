@@ -880,6 +880,117 @@ def compute_augmented_reconstruction(aug_eigenvals, aug_eigenvecs, L_eigenvector
 
     return aug_A_distilled, aug_R_sparsified, results
 
+# def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_train, reduction_rate, alpha=0.5):
+#     """
+#     Assign labels to all nodes in augmented distilled graph
+    
+#     Args:
+#         x_aug (torch.Tensor): Features of all nodes in augmented graph
+#         A_aug (torch.Tensor): Augmented adjacency matrix
+#         eigenvecs_aug (torch.Tensor): Augmented eigenvectors
+#         x_train (torch.Tensor): Training node features
+#         y_train (torch.Tensor): Training node labels
+#         reduction_rate (float): Target size relative to original graph
+#         alpha (float): Weight between feature and structural similarity (0-1)
+        
+#     Returns:
+#         torch.Tensor: Labels for all nodes in augmented graph
+#     """
+#     # Calculate target number of nodes per class
+#     n_total = len(y_train)
+#     class_counts = Counter(y_train.cpu().numpy())
+#     sorted_classes = sorted(class_counts.items(), key=lambda x: x[1])
+#     n_aug = len(x_aug)
+    
+#     # Calculate target distribution for augmented graph
+#     target_counts = {}
+#     running_sum = 0
+#     for i, (c, count) in enumerate(sorted_classes):
+#         if i == len(sorted_classes) - 1:
+#             target_counts[c] = n_aug - running_sum
+#         else:
+#             # Scale up the minimum nodes per class for augmented size
+#             min_nodes = max(int(count * reduction_rate), 1)
+#             aug_scale = n_aug / int(n_total * reduction_rate)
+#             target_counts[c] = max(int(min_nodes * aug_scale), 1)
+#             running_sum += target_counts[c]
+    
+#     # Compute combined similarity scores
+#     feat_sim = F.normalize(torch.mm(x_aug, x_train.t()), dim=1)
+    
+#     struct_embeddings = eigenvecs_aug @ A_aug
+#     train_embeddings = eigenvecs_aug[:len(y_train)] @ torch.eye(len(y_train), device=y_train.device)
+#     struct_sim = F.normalize(torch.mm(struct_embeddings, train_embeddings.t()), dim=1)
+    
+#     combined_sim = alpha * feat_sim + (1 - alpha) * struct_sim
+    
+#     # Initialize tensors to store results
+#     assigned_labels = torch.zeros(n_aug, dtype=torch.long, device=x_aug.device)
+#     assigned_mask = torch.zeros(n_aug, dtype=torch.bool, device=x_aug.device)
+#     current_counts = Counter()
+    
+#     # First pass: Assign highest confidence predictions while respecting class balance
+#     confidence_scores, predicted_labels = torch.max(combined_sim, dim=1)
+#     sorted_indices = torch.argsort(confidence_scores, descending=True)
+    
+#     print("\nAssigning labels in order of confidence...")
+#     for idx in sorted_indices:
+#         if assigned_mask[idx]:
+#             continue
+            
+#         pred_label = y_train[predicted_labels[idx]].item()
+#         if current_counts[pred_label] < target_counts[pred_label]:
+#             assigned_labels[idx] = pred_label
+#             assigned_mask[idx] = True
+#             current_counts[pred_label] += 1
+    
+#     # Second pass: Assign remaining nodes to maintain class balance
+#     remaining_indices = (~assigned_mask).nonzero().squeeze()
+#     if len(remaining_indices.shape) == 0:
+#         remaining_indices = remaining_indices.unsqueeze(0)
+        
+#     print("\nBalancing remaining assignments...")
+#     for c, target in target_counts.items():
+#         if current_counts[c] >= target:
+#             continue
+            
+#         # Find nodes most similar to class c
+#         class_mask = (y_train == c)
+#         class_sim = combined_sim[:, class_mask].mean(dim=1)
+        
+#         # Sort remaining nodes by similarity to class c
+#         remaining_sim = class_sim[remaining_indices]
+#         sorted_remaining = remaining_indices[torch.argsort(remaining_sim, descending=True)]
+        
+#         # Assign needed number of nodes
+#         needed = target - current_counts[c]
+#         for idx in sorted_remaining[:needed]:
+#             assigned_labels[idx] = c
+#             assigned_mask[idx] = True
+#             current_counts[c] += 1
+#             remaining_indices = remaining_indices[remaining_indices != idx]
+    
+#     # Print distribution statistics
+#     print("\nFinal Label Distribution:")
+#     print(f"{'Class':<8} {'Target':<8} {'Assigned':<8} {'Diff':<8}")
+#     print("-" * 32)
+#     for c in sorted(target_counts.keys()):
+#         diff = current_counts[c] - target_counts[c]
+#         print(f"{c:<8} {target_counts[c]:<8} {current_counts[c]:<8} {diff:<8}")
+    
+#     confidence_by_class = {}
+#     for c in target_counts.keys():
+#         mask = assigned_labels == c
+#         if torch.any(mask):
+#             conf = confidence_scores[mask].mean().item()
+#             confidence_by_class[c] = conf
+    
+#     print("\nAverage Assignment Confidence by Class:")
+#     for c, conf in confidence_by_class.items():
+#         print(f"Class {c}: {conf:.4f}")
+    
+#     return assigned_labels
+
 def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_train, reduction_rate, alpha=0.5):
     """
     Assign labels to all nodes in augmented distilled graph
@@ -896,37 +1007,59 @@ def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_trai
     Returns:
         torch.Tensor: Labels for all nodes in augmented graph
     """
-    # Calculate target number of nodes per class
+    # Get device and move tensors
+    device = x_aug.device
+    x_aug = x_aug.to(device)
+    A_aug = A_aug.to(device)
+    eigenvecs_aug = eigenvecs_aug.to(device)
+    x_train = x_train.to(device)
+    y_train = y_train.to(device)
+    
+    # Debug prints
+    print(f"x_aug shape: {x_aug.shape}")
+    print(f"x_train shape: {x_train.shape}")
+    print(f"eigenvecs_aug shape: {eigenvecs_aug.shape}")
+    
+    # Calculate target distribution
     n_total = len(y_train)
     class_counts = Counter(y_train.cpu().numpy())
     sorted_classes = sorted(class_counts.items(), key=lambda x: x[1])
     n_aug = len(x_aug)
     
-    # Calculate target distribution for augmented graph
+    # Calculate target counts for each class
     target_counts = {}
     running_sum = 0
     for i, (c, count) in enumerate(sorted_classes):
         if i == len(sorted_classes) - 1:
             target_counts[c] = n_aug - running_sum
         else:
-            # Scale up the minimum nodes per class for augmented size
             min_nodes = max(int(count * reduction_rate), 1)
             aug_scale = n_aug / int(n_total * reduction_rate)
             target_counts[c] = max(int(min_nodes * aug_scale), 1)
             running_sum += target_counts[c]
     
-    # Compute combined similarity scores
+    # Compute feature similarity [n_aug x n_train]
     feat_sim = F.normalize(torch.mm(x_aug, x_train.t()), dim=1)
+    print(f"feat_sim shape: {feat_sim.shape}")
     
+    # Create structural similarity matrix matching feat_sim shape
+    zeros = torch.zeros((x_aug.shape[0], x_train.shape[0]), device=device)
+    struct_sim = zeros.clone()
+    
+    # Compute structural embeddings
     struct_embeddings = eigenvecs_aug @ A_aug
-    train_embeddings = eigenvecs_aug[:len(y_train)] @ torch.eye(len(y_train), device=y_train.device)
-    struct_sim = F.normalize(torch.mm(struct_embeddings, train_embeddings.t()), dim=1)
+    struct_embeddings = F.normalize(struct_embeddings, dim=1)
+    small_sim = torch.mm(struct_embeddings, struct_embeddings.t())
+    struct_sim[:, :small_sim.shape[1]] = small_sim
     
+    print(f"struct_sim shape: {struct_sim.shape}")
+    
+    # Combine similarities
     combined_sim = alpha * feat_sim + (1 - alpha) * struct_sim
     
-    # Initialize tensors to store results
-    assigned_labels = torch.zeros(n_aug, dtype=torch.long, device=x_aug.device)
-    assigned_mask = torch.zeros(n_aug, dtype=torch.bool, device=x_aug.device)
+    # Initialize results tensors
+    assigned_labels = torch.zeros(n_aug, dtype=torch.long, device=device)
+    assigned_mask = torch.zeros(n_aug, dtype=torch.bool, device=device)
     current_counts = Counter()
     
     # First pass: Assign highest confidence predictions while respecting class balance
@@ -937,7 +1070,6 @@ def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_trai
     for idx in sorted_indices:
         if assigned_mask[idx]:
             continue
-            
         pred_label = y_train[predicted_labels[idx]].item()
         if current_counts[pred_label] < target_counts[pred_label]:
             assigned_labels[idx] = pred_label
