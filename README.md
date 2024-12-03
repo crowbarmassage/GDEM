@@ -1,3 +1,10 @@
+# Additions
+
+- distill_2.py was created to resolve conflicts with deeprobust and colab
+- config files were updated
+- residual.py
+- augmentation.py
+
 # Graph Distillation with Eigenbasis Matching (GDEM)
 
 This is the Pytorch implementation for ["Graph Distillation with Eigenbasis Matching"](https://arxiv.org/pdf/2310.09202).
