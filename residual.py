@@ -317,7 +317,6 @@ def ensure_sparse_connectivity(adj_matrix):
     # Move to CPU for numpy operations
     edge_weights = -adj_matrix.cpu().numpy()
     mst = minimum_spanning_tree(edge_weights).toarray()
-    print("i'm here")
     
     # Create tensor from MST on the correct device
     mst_tensor = torch.tensor(mst + mst.T > 0, device=device)
@@ -327,6 +326,37 @@ def ensure_sparse_connectivity(adj_matrix):
     
     # Combine using tensors on the same device
     connected_adj = ((sparse_adj > 0) | mst_tensor).float()
+    
+    return connected_adj
+
+def ensure_connectivity(adj_matrix):
+    """Ensure graph is connected without enforcing sparsity"""
+    # Get the device from the input matrix
+    device = adj_matrix.device
+    
+    # Get original edge information
+    num_nodes = adj_matrix.shape[0]
+    num_edges = torch.sum(adj_matrix > 0).item()
+    print(f"\nOriginal Graph:")
+    print(f"Number of nodes: {num_nodes}")
+    print(f"Number of edges: {num_edges}")
+    
+    # Move to CPU for numpy operations
+    edge_weights = -adj_matrix.cpu().numpy()
+    mst = minimum_spanning_tree(edge_weights).toarray()
+    
+    # Create tensor from MST on the correct device
+    mst_tensor = torch.tensor(mst + mst.T > 0, device=device)
+    
+    # Combine original adjacency with MST to ensure connectivity
+    connected_adj = ((adj_matrix > 0) | mst_tensor).float()
+    
+    # Get final edge information
+    final_num_edges = torch.sum(connected_adj > 0).item()
+    print(f"\nConnected Graph:")
+    print(f"Number of nodes: {num_nodes}")
+    print(f"Number of edges: {final_num_edges}")
+    print(f"Added edges: {final_num_edges - num_edges}")
     
     return connected_adj
 
