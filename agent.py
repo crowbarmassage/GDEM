@@ -348,12 +348,12 @@ class GraphAgent:
         return embed
 
     
-    def get_init_syn_feat(self, dataset, reduction_rate, expID):
+    def get_init_syn_feat(self, dataset, reduction_rate, expID, flag=0):
         init_syn_x = torch.load(f"./initial_feat/{dataset}/x_init_{reduction_rate}_{expID}.pt", map_location="cpu")
         return init_syn_x
     
         
-    def get_init_syn_eigenvecs(self, n_syn, num_classes):
+    def get_init_syn_eigenvecs(self, n_syn, num_classes, flag=0):
         n_nodes_per_class = n_syn // num_classes
         n_nodes_last = n_syn % num_classes
 
