@@ -77,7 +77,48 @@ def load_parameter_dependent_files(file_path, device, x, y):
     
     return eigenvals, eigenvecs, feat, x_init, A_distilled
 
-def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k, device='cuda', dtype=torch.float32):
+# def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k, device='cuda', dtype=torch.float32):
+#     """
+#     Compute the reconstruction and residual using the first k eigenvectors
+    
+#     Args:
+#         L_eigenvectors (numpy.ndarray): Matrix of eigenvectors
+#         A_distilled (torch.Tensor): Distilled adjacency matrix
+#         A (numpy.ndarray): Original adjacency matrix
+#         k (int): Number of eigenvectors to use
+#         device (str): Device to use for computations ('cuda' or 'cpu')
+#         dtype (torch.dtype): Dtype to use for tensors (default: torch.float32)
+        
+#     Returns:
+#         tuple: (V, A_torch, A_reconstructed, R)
+#     """
+#     # Get first k eigenvectors and move to device with specified dtype
+#     V = L_eigenvectors[:, :k]  # First k eigenvectors
+#     V = torch.tensor(V, dtype=dtype).to(device)
+#     print(f"V shape: {V.shape}, dtype: {V.dtype}")
+    
+#     # Ensure A_distilled is on the same device and dtype
+#     A_distilled = A_distilled.to(device).to(dtype)
+#     print(f"A_distilled shape: {A_distilled.shape}, dtype: {A_distilled.dtype}")
+    
+#     # Convert sparse matrix to dense if needed
+#     if sp.issparse(A):
+#         A = A.toarray()
+    
+#     # Ensure A is numeric and convert to tensor with specified dtype
+#     A = np.array(A, dtype=np.float32 if dtype == torch.float32 else np.float64)
+#     A_torch = torch.tensor(A, dtype=dtype).to(device)
+    
+#     # Compute reconstruction
+#     A_reconstructed = V @ A_distilled @ V.T
+    
+#     # Compute residual
+#     R = A_torch - A_reconstructed
+#     print(f"Residual shape: {R.shape}, dtype: {R.dtype}")
+    
+#     return V, A_torch, A_reconstructed, R
+
+def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k, device=None, dtype=torch.float32):
     """
     Compute the reconstruction and residual using the first k eigenvectors
     
@@ -86,12 +127,15 @@ def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k, device='c
         A_distilled (torch.Tensor): Distilled adjacency matrix
         A (numpy.ndarray): Original adjacency matrix
         k (int): Number of eigenvectors to use
-        device (str): Device to use for computations ('cuda' or 'cpu')
+        device (str): Device to use. If None, will use CUDA if available, else CPU
         dtype (torch.dtype): Dtype to use for tensors (default: torch.float32)
-        
-    Returns:
-        tuple: (V, A_torch, A_reconstructed, R)
     """
+    # Handle device selection
+    if device is None:
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    device = torch.device(device)
+    print(f"Using device: {device}")
+    
     # Get first k eigenvectors and move to device with specified dtype
     V = L_eigenvectors[:, :k]  # First k eigenvectors
     V = torch.tensor(V, dtype=dtype).to(device)
@@ -104,6 +148,7 @@ def compute_reconstruction_residual(L_eigenvectors, A_distilled, A, k, device='c
     # Convert sparse matrix to dense if needed
     if sp.issparse(A):
         A = A.toarray()
+        print("Converted A to dense matrix")
     
     # Ensure A is numeric and convert to tensor with specified dtype
     A = np.array(A, dtype=np.float32 if dtype == torch.float32 else np.float64)
