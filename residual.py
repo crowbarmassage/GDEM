@@ -631,7 +631,7 @@ def compute_augmented_reconstruction(aug_eigenvals, aug_eigenvecs, L_eigenvector
 
     return aug_A_distilled, aug_R_sparsified, results
 
-def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_train, reduction_rate, alpha=0.5):
+def reassign_augmented_graph_labels(x_aug, A_aug, aug_eigenvecs, x_train, y_train, reduction_rate, alpha=0.5):
     """
     Assign labels to all nodes in augmented distilled graph
     
