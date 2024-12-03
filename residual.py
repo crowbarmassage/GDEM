@@ -561,15 +561,15 @@ def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=
     A_aug[n_syn:, n_syn:] = new_to_new
     
     # Extend spectral properties if provided
-    if orig_eigenvals is not None and orig_eigenvecs is not None:
-        aug_eigenvals, aug_eigenvecs = extend_spectral_properties(
-            orig_eigenvals,
-            orig_eigenvecs,
-            A_aug,
-            n_old=n_syn,
-            n_new=k
-        )
-        return cluster_labels, A_aug, x_aug, aug_eigenvals, aug_eigenvecs
+    # if orig_eigenvals is not None and orig_eigenvecs is not None:
+    #     aug_eigenvals, aug_eigenvecs = extend_spectral_properties(
+    #         orig_eigenvals,
+    #         orig_eigenvecs,
+    #         A_aug,
+    #         n_old=n_syn,
+    #         n_new=k
+    #     )
+    #     return cluster_labels, A_aug, x_aug, aug_eigenvals, aug_eigenvecs
     
     return cluster_labels, A_aug, x_aug
 
