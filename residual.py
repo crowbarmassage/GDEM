@@ -470,17 +470,83 @@ def ensure_sparse_connectivity(adj_matrix):
     
     return connected_adj
     
+# def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_new):
+#     """
+#     Extend spectral properties using perturbation theory
+    
+#     Parameters:
+#     - orig_eigenvals: Original eigenvalues (n_old,)
+#     - orig_eigenvecs: Original eigenvectors (n_old x n_old)
+#     - A_aug: Augmented adjacency matrix ((n_old + n_new) x (n_old + n_new))
+#     - n_old: Number of original nodes (12)
+#     - n_new: Number of new nodes (2)
+#     """
+#     # Convert to normalized Laplacian space
+#     L_aug = compute_normalized_laplacian(A_aug)
+    
+#     # Extract perturbation blocks
+#     L11 = L_aug[:n_old, :n_old]  # (12 x 12)
+#     L12 = L_aug[:n_old, n_old:]  # (12 x 2)
+#     L21 = L_aug[n_old:, :n_old]  # (2 x 12)
+#     L22 = L_aug[n_old:, n_old:]  # (2 x 2)
+    
+#     # Initialize augmented matrices
+#     n_total = n_old + n_new  # 14
+#     aug_eigenvals = torch.zeros(n_total)
+#     aug_eigenvecs = torch.zeros((n_total, n_total))
+    
+#     # Copy original values
+#     aug_eigenvals[:n_old] = orig_eigenvals
+#     aug_eigenvecs[:n_old, :n_old] = orig_eigenvecs
+    
+#     # First order eigenvalue corrections for original eigenvalues
+#     for i in range(n_old):
+#         v_i = orig_eigenvecs[:, i]
+#         correction = torch.sum(L12 @ L21 @ v_i * v_i)
+#         aug_eigenvals[i] += correction
+    
+#     # Compute new eigenvalues for added nodes
+#     for i in range(n_new):
+#         # Estimate eigenvector for new node
+#         v_est = torch.zeros(n_old + n_new)
+        
+#         # Project using connections to original nodes
+#         proj = L21[i] @ orig_eigenvecs
+#         v_est[:n_old] = proj
+#         v_est[n_old + i] = 1.0  # Set component for this new node
+        
+#         # Normalize
+#         v_est = v_est / (torch.norm(v_est) + 1e-8)
+        
+#         # Place in augmented eigenvector matrix
+#         aug_eigenvecs[:, n_old + i] = v_est
+        
+#         # Compute corresponding eigenvalue using Rayleigh quotient
+#         Lv = L_aug @ v_est
+#         aug_eigenvals[n_old + i] = (v_est @ Lv) / (v_est @ v_est + 1e-8)
+    
+#     # Orthogonalize the complete eigenvector matrix
+#     aug_eigenvecs = gram_schmidt(aug_eigenvecs)
+    
+#     # Sort eigenvalues and eigenvectors
+#     idx = torch.argsort(aug_eigenvals)
+#     aug_eigenvals = aug_eigenvals[idx]
+#     aug_eigenvecs = aug_eigenvecs[:, idx]
+    
+#     return aug_eigenvals, aug_eigenvecs
+
 def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_new):
     """
     Extend spectral properties using perturbation theory
-    
-    Parameters:
-    - orig_eigenvals: Original eigenvalues (n_old,)
-    - orig_eigenvecs: Original eigenvectors (n_old x n_old)
-    - A_aug: Augmented adjacency matrix ((n_old + n_new) x (n_old + n_new))
-    - n_old: Number of original nodes (12)
-    - n_new: Number of new nodes (2)
     """
+    # Get device from A_aug
+    device = A_aug.device
+    dtype = A_aug.dtype
+    
+    # Ensure input tensors are on correct device
+    orig_eigenvals = orig_eigenvals.to(device)
+    orig_eigenvecs = orig_eigenvecs.to(device)
+    
     # Convert to normalized Laplacian space
     L_aug = compute_normalized_laplacian(A_aug)
     
@@ -490,10 +556,10 @@ def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_n
     L21 = L_aug[n_old:, :n_old]  # (2 x 12)
     L22 = L_aug[n_old:, n_old:]  # (2 x 2)
     
-    # Initialize augmented matrices
+    # Initialize augmented matrices on correct device
     n_total = n_old + n_new  # 14
-    aug_eigenvals = torch.zeros(n_total)
-    aug_eigenvecs = torch.zeros((n_total, n_total))
+    aug_eigenvals = torch.zeros(n_total, dtype=dtype, device=device)
+    aug_eigenvecs = torch.zeros((n_total, n_total), dtype=dtype, device=device)
     
     # Copy original values
     aug_eigenvals[:n_old] = orig_eigenvals
@@ -508,7 +574,7 @@ def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_n
     # Compute new eigenvalues for added nodes
     for i in range(n_new):
         # Estimate eigenvector for new node
-        v_est = torch.zeros(n_old + n_new)
+        v_est = torch.zeros(n_old + n_new, dtype=dtype, device=device)
         
         # Project using connections to original nodes
         proj = L21[i] @ orig_eigenvecs
@@ -526,7 +592,7 @@ def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_n
         aug_eigenvals[n_old + i] = (v_est @ Lv) / (v_est @ v_est + 1e-8)
     
     # Orthogonalize the complete eigenvector matrix
-    aug_eigenvecs = gram_schmidt(aug_eigenvecs)
+    aug_eigenvecs = gram_schmidt(aug_eigenvecs)  # Will maintain device
     
     # Sort eigenvalues and eigenvectors
     idx = torch.argsort(aug_eigenvals)
