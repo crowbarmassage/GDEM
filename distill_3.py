@@ -44,7 +44,7 @@ def manage_gpu_memory():
 #         torch.cuda.empty_cache()  # Clear cache after each chunk
 #     return co_matrix
 
-def run_agent(aug_eigenvals, aug_eigenvecs):
+def run_agent(aug_eigenvals, aug_eigenvecs, eigenvals_lcc, eigenvecs_lcc):
     
     parser = argparse.ArgumentParser()
     parser.add_argument("--gpu_id", type=int, default=0, help="gpu id")
@@ -125,7 +125,7 @@ def run_agent(aug_eigenvals, aug_eigenvecs):
     print(f"eigen_k: {args.eigen_k}")
     
     CHUNK_SIZE=1000  # New line
-    eigenvals, eigenvecs = get_syn_eigen(real_eigenvals=eigenvals_lcc, real_eigenvecs=eigenvecs_lcc, eigen_k=args.eigen_k, ratio=args.ratio)
+    eigenvals, eigenvecs = get_syn_eigen(real_eigenvals=eigenvals_lcc, real_eigenvecs=eigenvecs_lcc, eigen_k=args.eigen_k, ratio=1) # args.ratio)
     #eigenvals, eigenvecs = aug_eigenvals, aug_eigenvecs
     
     co_x_trans_real = get_subspace_covariance_matrix(eigenvecs, data.x_full[idx_lcc]) #kdd
