@@ -117,7 +117,8 @@ print(f"eigen_k: {args.eigen_k}")
 
 CHUNK_SIZE=1000  # New line
 eigenvals, eigenvecs = get_syn_eigen(real_eigenvals=eigenvals_lcc, real_eigenvecs=eigenvecs_lcc, eigen_k=args.eigen_k, ratio=args.ratio)
-
+print("Eigenvecs Shape:  ", eigenvecs.shape)
+print("Full x Shape:  ", data.x_full[idx_lcc].shape)
 co_x_trans_real = get_subspace_covariance_matrix(eigenvecs, data.x_full[idx_lcc]) #kdd
 embed_sum = get_embed_sum(eigenvals=eigenvals, eigenvecs=eigenvecs, x=data.x_full[idx_lcc])
 embed_sum = embed_sum[idx_map,:]
