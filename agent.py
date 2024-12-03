@@ -27,7 +27,7 @@ from model.gprgnn import GPRGNN
 
 
 class GraphAgent:
-    def __init__(self, args, data):
+    def __init__(self, args, data, flag=0):
         self.args = args
         self.data = data
         self.n_syn = int(len(data.idx_train) * args.reduction_rate)
@@ -40,15 +40,16 @@ class GraphAgent:
         self.eigenvecs_syn = nn.Parameter(
             torch.FloatTensor(self.n_syn, args.eigen_k).cuda()
         )
-
+    
         y_full = data.y_full
         idx_train = data.idx_train
         self.y_syn = torch.LongTensor(self.generate_labels_syn(y_full[idx_train], args.reduction_rate)).cuda()
-
-        init_syn_feat = self.get_init_syn_feat(dataset=args.dataset, reduction_rate=args.reduction_rate, expID=args.expID)
-        init_syn_eigenvecs = self.get_init_syn_eigenvecs(self.n_syn, self.num_classes)
+        self.flag = flag
+        init_syn_feat = self.get_init_syn_feat(dataset=args.dataset, reduction_rate=args.reduction_rate, expID=args.expID, self.flag)
+        init_syn_eigenvecs = self.get_init_syn_eigenvecs(self.n_syn, self.num_classes, self.flag)
         init_syn_eigenvecs = init_syn_eigenvecs[:, :args.eigen_k]
-        self.reset_parameters(init_syn_feat, init_syn_eigenvecs)
+        if self.flag == 0:
+            self.reset_parameters(init_syn_feat, init_syn_eigenvecs)
 
 
     def reset_parameters(self, init_syn_feat, init_syn_eigenvecs):
