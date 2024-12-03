@@ -57,12 +57,23 @@ def normalize_adj(mx):
     print("Adjacency Matrix Normalized")
     return mx
 
-def normalize_adj_to_sparse_tensor(mx):
+# def normalize_adj_to_sparse_tensor(mx):
+#     mx = normalize_adj(mx)
+#     mx = sparse_mx_to_torch_sparse_tensor(mx)
+#     sparsetensor = SparseTensor(row=mx._indices()[0], col=mx._indices()[1], value=mx._values(), sparse_sizes=mx.size()).cuda()
+#     return sparsetensor
+
+def normalize_adj_to_sparse_tensor(mx, device='cuda'):
     mx = normalize_adj(mx)
     mx = sparse_mx_to_torch_sparse_tensor(mx)
-    sparsetensor = SparseTensor(row=mx._indices()[0], col=mx._indices()[1], value=mx._values(), sparse_sizes=mx.size()).cuda()
+    sparsetensor = SparseTensor(
+        row=mx._indices()[0], 
+        col=mx._indices()[1], 
+        value=mx._values(), 
+        sparse_sizes=mx.size()
+    ).to(device)
     return sparsetensor
-
+    
 def get_syn_eigen(real_eigenvals, real_eigenvecs, eigen_k, ratio, step=1):
     k1 = math.ceil(eigen_k * ratio)
     k2 = eigen_k - k1
