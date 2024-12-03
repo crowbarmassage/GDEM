@@ -763,48 +763,48 @@ def reassign_augmented_graph_labels(x_aug, A_aug, eigenvecs_aug, x_train, y_trai
     
     return assigned_labels
 
-def evaluate_simple(data, args, aug_eigenvalues, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda'):
+# def evaluate_simple(data, args, aug_eigenvalues, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda'):
 
-        # Check if CUDA is available when device='cuda' is requested
-    if device == 'cuda' and not torch.cuda.is_available():
-        print("CUDA is not available, using CPU instead")
-        device = 'cpu'
+#         # Check if CUDA is available when device='cuda' is requested
+#     if device == 'cuda' and not torch.cuda.is_available():
+#         print("CUDA is not available, using CPU instead")
+#         device = 'cpu'
     
-    # Move everything to specified device
-    aug_features = aug_features.to(device)
-    aug_A = aug_A.to(device)
-    aug_labels = aug_labels.to(device)
+#     # Move everything to specified device
+#     aug_features = aug_features.to(device)
+#     aug_A = aug_A.to(device)
+#     aug_labels = aug_labels.to(device)
 
-    accs =[]
-    agent = GraphAgent(args, data)
-    try:
-        acc = agent.eval_only(aug_eigenvals, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda')
-        accs.append(acc)    
+#     accs =[]
+#     agent = GraphAgent(args, data)
+#     try:
+#         acc = agent.eval_only(aug_eigenvals, aug_eigenvecs, aug_features, aug_A, aug_labels, device='cuda')
+#         accs.append(acc)    
     
-    # Initialize model based on args.evaluate_gnn
-    if args.evaluate_gnn == "GCN":
-        model = GCN(
-            num_features=aug_features.shape[1],
-            num_classes=data.num_classes,
-            hidden_dim=args.hidden_dim,
-            nlayers=args.nlayers,
-            dropout=args.dropout,
-            lr=args.lr_gnn,
-            weight_decay=args.wd_gnn
-        ).to(device)
-    else:
-        raise ValueError(f"Unsupported model: {args.evaluate_gnn}")
+#     # Initialize model based on args.evaluate_gnn
+#     if args.evaluate_gnn == "GCN":
+#         model = GCN(
+#             num_features=aug_features.shape[1],
+#             num_classes=data.num_classes,
+#             hidden_dim=args.hidden_dim,
+#             nlayers=args.nlayers,
+#             dropout=args.dropout,
+#             lr=args.lr_gnn,
+#             weight_decay=args.wd_gnn
+#         ).to(device)
+#     else:
+#         raise ValueError(f"Unsupported model: {args.evaluate_gnn}")
 
-        # Training loop
-    best_val_acc = 0
-    best_test_acc = 0
+#         # Training loop
+#     best_val_acc = 0
+#     best_test_acc = 0
 
 
-    print(f'\nBest results:')
-    print(f'Val Acc: {best_val_acc:.4f}')
-    print(f'Test Acc: {best_test_acc:.4f}')
+#     print(f'\nBest results:')
+#     print(f'Val Acc: {best_val_acc:.4f}')
+#     print(f'Test Acc: {best_test_acc:.4f}')
     
-    return best_val_acc, best_test_acc
+#     return best_val_acc, best_test_acc
     
 def evaluate_augmented_graph(data, args, aug_features, aug_A, aug_labels, device='cuda'):
     """
