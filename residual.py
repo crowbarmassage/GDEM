@@ -8,18 +8,6 @@ from scipy.sparse.csgraph import minimum_spanning_tree
 import os
 from collections import Counter
 
-torch.set_printoptions(sci_mode=False)
-
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-    print("GPU available:", torch.cuda.get_device_name(0))
-else:
-    device = torch.device('cpu')
-    print("Using CPU")
-
-# Update this path based on your file location
-file_path = '/content/drive/MyDrive/All_DataAnalytics_AI/CS_514/Project/saved_citeseer/citeseer-0.1/'
-
 # Data Loading Functions
 
 def load_constant_files(file_path, device):
