@@ -63,8 +63,8 @@ class GraphAgent:
                 self.num_classes, 
                 flag=self.flag
             )
-        else:
-            init_syn_eigenvecs = init_syn_eigenvecs[:self.n_syn, :args.eigen_k]
+        # else:
+        #     init_syn_eigenvecs = init_syn_eigenvecs[:self.n_syn, :args.eigen_k]
             
         print("init_syn_feat.shape: ", init_syn_feat.shape)
         print("init_syn_eigenvecs.shape: ", init_syn_eigenvecs.shape)
