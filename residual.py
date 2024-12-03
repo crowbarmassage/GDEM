@@ -9,7 +9,7 @@ import os
 from collections import Counter
 import torch.nn.functional as F
 from sklearn.metrics import accuracy_score
-from model import *
+from model.gcn import *
 
 
 # Data Loading Functions
