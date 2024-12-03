@@ -36,6 +36,7 @@ class GraphAgent:
         self.syn_class_indices = {}
         self.class_dict = None
         
+        # Initialize learnable parameters
         self.x_syn = nn.Parameter(torch.FloatTensor(self.n_syn, self.d).cuda())
         self.eigenvecs_syn = nn.Parameter(
             torch.FloatTensor(self.n_syn, args.eigen_k).cuda()
@@ -45,13 +46,29 @@ class GraphAgent:
         idx_train = data.idx_train
         self.y_syn = torch.LongTensor(self.generate_labels_syn(y_full[idx_train], args.reduction_rate)).cuda()
         self.flag = flag
-        if init_syn_feat==None:
-            init_syn_feat = self.get_init_syn_feat(dataset=args.dataset, reduction_rate=args.reduction_rate, expID=args.expID, flag=self.flag) #kd
-        if init_syn_eigenvecs==None:
-            init_syn_eigenvecs = self.get_init_syn_eigenvecs(self.n_syn, self.num_classes, flag=self.flag) #kk
-        print("init_syn_feat.shape:  ", init_syn_feat.shape)
-        init_syn_eigenvecs = init_syn_eigenvecs[:, :args.eigen_k]
-        print("init_syn_eigenvecs.shape:  ", init_syn_eigenvecs.shape)
+    
+        # Handle feature initialization
+        if isinstance(init_syn_feat, type(None)):
+            init_syn_feat = self.get_init_syn_feat(
+                dataset=args.dataset, 
+                reduction_rate=args.reduction_rate, 
+                expID=args.expID, 
+                flag=self.flag
+            )
+        
+        # Handle eigenvector initialization
+        if isinstance(init_syn_eigenvecs, type(None)):
+            init_syn_eigenvecs = self.get_init_syn_eigenvecs(
+                self.n_syn, 
+                self.num_classes, 
+                flag=self.flag
+            )
+        else:
+            init_syn_eigenvecs = init_syn_eigenvecs[:self.n_syn, :args.eigen_k]
+            
+        print("init_syn_feat.shape: ", init_syn_feat.shape)
+        print("init_syn_eigenvecs.shape: ", init_syn_eigenvecs.shape)
+    
         if self.flag == 0:
             self.reset_parameters(init_syn_feat, init_syn_eigenvecs)
 
