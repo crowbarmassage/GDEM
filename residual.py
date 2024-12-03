@@ -437,18 +437,39 @@ def threshold_sparse(matrix, sparsity=0.7):
     threshold = torch.quantile(values, sparsity)
     return matrix * (matrix > threshold)
 
+# def ensure_sparse_connectivity(adj_matrix):
+#     """Ensure graph is connected while maintaining sparsity"""
+#     # Get minimum spanning tree
+#     edge_weights = -adj_matrix.cpu().numpy()
+#     mst = minimum_spanning_tree(edge_weights).toarray()
+    
+#     # Add MST edges to ensure connectivity
+#     sparse_adj = threshold_sparse(adj_matrix)
+#     connected_adj = ((sparse_adj > 0) | torch.tensor(mst + mst.T > 0)).float()
+    
+#     return connected_adj
+
 def ensure_sparse_connectivity(adj_matrix):
     """Ensure graph is connected while maintaining sparsity"""
-    # Get minimum spanning tree
+    # Get the device from the input matrix
+    device = adj_matrix.device
+    
+    # Move to CPU for numpy operations
     edge_weights = -adj_matrix.cpu().numpy()
     mst = minimum_spanning_tree(edge_weights).toarray()
+    print("i'm here")
     
-    # Add MST edges to ensure connectivity
+    # Create tensor from MST on the correct device
+    mst_tensor = torch.tensor(mst + mst.T > 0, device=device)
+    
+    # Threshold on the same device
     sparse_adj = threshold_sparse(adj_matrix)
-    connected_adj = ((sparse_adj > 0) | torch.tensor(mst + mst.T > 0)).float()
+    
+    # Combine using tensors on the same device
+    connected_adj = ((sparse_adj > 0) | mst_tensor).float()
     
     return connected_adj
-
+    
 def extend_spectral_properties(orig_eigenvals, orig_eigenvecs, A_aug, n_old, n_new):
     """
     Extend spectral properties using perturbation theory
