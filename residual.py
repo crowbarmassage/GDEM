@@ -424,6 +424,7 @@ def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=
     Modified to select num_new_nodes clusters with highest Frobenius norm contribution
     """
     # Convert tensors to numpy
+    device = x_syn.device
     if torch.is_tensor(residual):
         residual_np = residual.cpu().numpy()
     else:
@@ -492,12 +493,12 @@ def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=
         print(f"Cluster {cluster['label']}: {cluster['contribution']:.2f}% contribution")
     
     # Create augmented features
-    new_features = torch.tensor(np.stack([c['features'] for c in selected_clusters])).float()
+    new_features = torch.tensor(np.stack([c['features'] for c in selected_clusters])).float().to(device)  # Move to same device as x_syn
     x_aug = torch.vstack([x_syn, new_features])
     
     # Create augmented adjacency matrix
     n_syn = len(x_syn)
-    A_aug = torch.zeros((n_syn + k, n_syn + k))
+    A_aug = torch.zeros((n_syn + k, n_syn + k), device=device)  # Create on same device
     
     # Keep existing synthetic node connections
     A_aug[:n_syn, :n_syn] = A_distilled
@@ -505,11 +506,11 @@ def augment_graph_louvain(residual, features, x_syn, A_distilled, num_new_nodes=
     # Add connections for new nodes
     cluster_connections = np.stack([c['connectivity'] for c in selected_clusters])
     
-    new_to_existing = compute_new_connections(cluster_connections, x_syn, features)
+    new_to_existing = compute_new_connections(cluster_connections, x_syn, features).to(device)  # Move to same device
     A_aug[n_syn:, :n_syn] = new_to_existing
     A_aug[:n_syn, n_syn:] = new_to_existing.T
     
-    new_to_new = compute_new_to_new_connections(cluster_connections, k)
+    new_to_new = compute_new_to_new_connections(cluster_connections, k).to(device)  # Move to same device
     A_aug[n_syn:, n_syn:] = new_to_new
     
     # Extend spectral properties if provided
