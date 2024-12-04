@@ -75,7 +75,7 @@ class GraphAgent:
 
     def reset_parameters(self, init_syn_feat, init_syn_eigenvecs):
         self.x_syn.data.copy_(init_syn_feat)
-        self.eigenvecs_syn.data.copy_(init_syn_eigenvecs)
+        self.eigenvecs_syn.data.copy_(torch.FloatTensor(init_syn_eigenvecs))
         
     
     def get_sub_adj_feat(self, features):
