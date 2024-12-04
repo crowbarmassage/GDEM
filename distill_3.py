@@ -154,17 +154,20 @@ def run_agent(aug_eigenvals, aug_eigenvecs, aug_features, eigenvals_lcc, eigenve
         torch.cuda.empty_cache()  # Clear cache before each run
         args.expID = ep
         # agent = GraphAgent(args, data, 1, aug_features, aug_eigenvecs)
-        agent = GraphAgent(args, data, 1, 
-                  aug_features.cpu().numpy(),  # Convert to numpy first
-                  aug_eigenvecs.cpu().numpy()) 
+        if torch.is_tensor(aug_features):
+            aug_features = aug_features.cpu().numpy()
+        if torch.is_tensor(aug_eigenvecs):
+            aug_eigenvecs = aug_eigenvecs.cpu().numpy()
+    
+        agent = GraphAgent(args, data, 1, aug_features, aug_eigenvecs)
+    
         try:
             acc = agent.train(eigenvals, co_x_trans_real, embed_mean_real)
             accs.append(acc)
         except RuntimeError as e:
             if "out of memory" in str(e):
-                print(f"Out of memory in run {ep}. Clearing cache and continuing...")
+                print(f"Out of memory. Clearing cache and continuing...")
                 torch.cuda.empty_cache()
-                continue
             else:
                 raise e
         # acc = agent.train(eigenvals, co_x_trans_real, embed_mean_real)
