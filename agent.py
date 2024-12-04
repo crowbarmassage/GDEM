@@ -28,54 +28,119 @@ from model.gprgnn import GPRGNN
 
 class GraphAgent:
     def __init__(self, args, data, flag=0, init_syn_feat=None, init_syn_eigenvecs=None):
-        self.args = args
-        self.data = data
-        self.n_syn = int(len(data.idx_train) * args.reduction_rate)
-        self.d = (data.x_train).shape[1]
-        self.num_classes = data.num_classes
-        self.syn_class_indices = {}
-        self.class_dict = None
-        
-        # Initialize learnable parameters
-        self.x_syn = nn.Parameter(torch.FloatTensor(self.n_syn, self.d).cuda())
-        self.eigenvecs_syn = nn.Parameter(
-            torch.FloatTensor(self.n_syn, args.eigen_k).cuda()
+    self.args = args
+    self.data = data
+    self.n_syn = int(len(data.idx_train) * args.reduction_rate)
+    self.d = (data.x_train).shape[1]
+    self.num_classes = data.num_classes
+    self.syn_class_indices = {}
+    self.class_dict = None
+    
+    # Initialize learnable parameters
+    self.x_syn = nn.Parameter(torch.FloatTensor(self.n_syn, self.d).cuda())
+    self.eigenvecs_syn = nn.Parameter(
+        torch.FloatTensor(self.n_syn, args.eigen_k).cuda()
+    )
+
+    y_full = data.y_full
+    idx_train = data.idx_train
+    self.y_syn = torch.LongTensor(self.generate_labels_syn(y_full[idx_train], args.reduction_rate)).cuda()
+    self.flag = flag
+
+    # Convert inputs to tensors if needed
+    if init_syn_feat is not None:
+        init_syn_feat = torch.FloatTensor(init_syn_feat).cuda()
+    if init_syn_eigenvecs is not None:
+        init_syn_eigenvecs = torch.FloatTensor(init_syn_eigenvecs).cuda()
+
+    # Handle feature initialization
+    if init_syn_feat is None:
+        init_syn_feat = self.get_init_syn_feat(
+            dataset=args.dataset, 
+            reduction_rate=args.reduction_rate, 
+            expID=args.expID, 
+            flag=self.flag
         )
     
-        y_full = data.y_full
-        idx_train = data.idx_train
-        self.y_syn = torch.LongTensor(self.generate_labels_syn(y_full[idx_train], args.reduction_rate)).cuda()
-        self.flag = flag
-    
-        # Handle feature initialization
-        if isinstance(init_syn_feat, type(None)):
-            init_syn_feat = self.get_init_syn_feat(
-                dataset=args.dataset, 
-                reduction_rate=args.reduction_rate, 
-                expID=args.expID, 
-                flag=self.flag
-            )
+    # Handle eigenvector initialization
+    if init_syn_eigenvecs is None:
+        init_syn_eigenvecs = self.get_init_syn_eigenvecs(
+            self.n_syn, 
+            self.num_classes, 
+            flag=self.flag
+        )
+    else:
+        # Ensure proper dimensions
+        init_syn_eigenvecs = init_syn_eigenvecs[:self.n_syn, :args.eigen_k]
         
-        # Handle eigenvector initialization
-        if isinstance(init_syn_eigenvecs, type(None)):
-            init_syn_eigenvecs = self.get_init_syn_eigenvecs(
-                self.n_syn, 
-                self.num_classes, 
-                flag=self.flag
-            )
-        # else:
-        #     init_syn_eigenvecs = init_syn_eigenvecs[:self.n_syn, :args.eigen_k]
-            
-        print("init_syn_feat.shape: ", init_syn_feat.shape)
-        print("init_syn_eigenvecs.shape: ", init_syn_eigenvecs.shape)
-    
-        #if self.flag == 0:
+    print("init_syn_feat.shape: ", init_syn_feat.shape)
+    print("init_syn_eigenvecs.shape: ", init_syn_eigenvecs.shape)
+
+    if self.flag == 0:
         self.reset_parameters(init_syn_feat, init_syn_eigenvecs)
 
+def reset_parameters(self, init_syn_feat, init_syn_eigenvecs):
+    """
+    Reset parameters with proper tensor handling
+    """
+    # Convert to tensors if needed
+    if not torch.is_tensor(init_syn_feat):
+        init_syn_feat = torch.FloatTensor(init_syn_feat).cuda()
+    if not torch.is_tensor(init_syn_eigenvecs):
+        init_syn_eigenvecs = torch.FloatTensor(init_syn_eigenvecs).cuda()
+        
+    self.x_syn.data.copy_(init_syn_feat)
+    self.eigenvecs_syn.data.copy_(init_syn_eigenvecs)
+    
+    # def __init__(self, args, data, flag=0, init_syn_feat=None, init_syn_eigenvecs=None):
+    #     self.args = args
+    #     self.data = data
+    #     self.n_syn = int(len(data.idx_train) * args.reduction_rate)
+    #     self.d = (data.x_train).shape[1]
+    #     self.num_classes = data.num_classes
+    #     self.syn_class_indices = {}
+    #     self.class_dict = None
+        
+    #     # Initialize learnable parameters
+    #     self.x_syn = nn.Parameter(torch.FloatTensor(self.n_syn, self.d).cuda())
+    #     self.eigenvecs_syn = nn.Parameter(
+    #         torch.FloatTensor(self.n_syn, args.eigen_k).cuda()
+    #     )
+    
+    #     y_full = data.y_full
+    #     idx_train = data.idx_train
+    #     self.y_syn = torch.LongTensor(self.generate_labels_syn(y_full[idx_train], args.reduction_rate)).cuda()
+    #     self.flag = flag
+    
+    #     # Handle feature initialization
+    #     if isinstance(init_syn_feat, type(None)):
+    #         init_syn_feat = self.get_init_syn_feat(
+    #             dataset=args.dataset, 
+    #             reduction_rate=args.reduction_rate, 
+    #             expID=args.expID, 
+    #             flag=self.flag
+    #         )
+        
+    #     # Handle eigenvector initialization
+    #     if isinstance(init_syn_eigenvecs, type(None)):
+    #         init_syn_eigenvecs = self.get_init_syn_eigenvecs(
+    #             self.n_syn, 
+    #             self.num_classes, 
+    #             flag=self.flag
+    #         )
+    #     # else:
+    #     #     init_syn_eigenvecs = init_syn_eigenvecs[:self.n_syn, :args.eigen_k]
+            
+    #     print("init_syn_feat.shape: ", init_syn_feat.shape)
+    #     print("init_syn_eigenvecs.shape: ", init_syn_eigenvecs.shape)
+    
+    #     #if self.flag == 0:
+    #     self.reset_parameters(init_syn_feat, init_syn_eigenvecs)
 
-    def reset_parameters(self, init_syn_feat, init_syn_eigenvecs):
-        self.x_syn.data.copy_(init_syn_feat)
-        self.eigenvecs_syn.data.copy_(torch.FloatTensor(init_syn_eigenvecs))
+
+    # def reset_parameters(self, init_syn_feat, init_syn_eigenvecs):
+    #     self.x_syn.data.copy_(init_syn_feat)
+    #     self.eigenvecs_syn.data.copy_(torch.FloatTensor(init_syn_eigenvecs))
         
     
     def get_sub_adj_feat(self, features):
